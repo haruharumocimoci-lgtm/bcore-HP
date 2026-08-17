@@ -4,8 +4,23 @@
 
 ## 公開リンク
 
-- 共有用ページ（Claude Artifact）: https://claude.ai/code/artifact/344e87af-7020-4222-9795-030fe3afa99c
+- **一般公開URL（GitHub Pages）: https://haruharumocimoci-lgtm.github.io/bcore-HP/**
+  誰でもログインなしで見られます。お客さん・保護者へはこちらを共有してください。
+- 確認用ページ（Claude Artifact）: https://claude.ai/code/artifact/344e87af-7020-4222-9795-030fe3afa99c
+  claude.aiのログインが必要なので、身内の確認用です。
 - 原稿の編集台帳（Notion）: https://app.notion.com/p/3bdf8c123ef7818b858deb0b558ea72c
+
+### GitHub Pages を有効にする（初回のみ）
+
+リポジトリの **Settings → Pages** を開き、
+
+1. Source: `Deploy from a branch`
+2. Branch: `claude/press-share-feature-7rebih` / `(root)`
+3. Save
+
+数分待つと上記のURLで公開されます。以降は `index.html` をこのブランチにpushするたびに自動で更新されます。
+
+> Pagesの配信元にしているブランチを削除すると公開が止まります。ブランチ名を変える場合は Settings → Pages の設定も合わせて変更してください。
 
 ## ファイル構成
 
