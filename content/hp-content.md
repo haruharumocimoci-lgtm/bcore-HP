@@ -1,6 +1,6 @@
 # B-CORE HP 原稿（Notion 編集台帳のスナップショット）
 
-出典: [B-CORE HP 編集台帳](https://app.notion.com/p/3bdf8c123ef7818b858deb0b558ea72c)
+出典: [B-CORE HP 編集台帳](https://app.notion.com/p/5a8433a6c8bd832faf1281025f14e638)
 
 このファイルは `index.html` に反映済みの本文テキストの控えです。
 原本は Notion 側。差分確認・レビュー用にリポジトリにも置いています。

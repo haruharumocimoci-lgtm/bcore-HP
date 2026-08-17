@@ -8,7 +8,7 @@
   誰でもログインなしで見られます。お客さん・保護者へはこちらを共有してください。
 - 確認用ページ（Claude Artifact）: https://claude.ai/code/artifact/344e87af-7020-4222-9795-030fe3afa99c
   claude.aiのログインが必要なので、身内の確認用です。
-- 原稿の編集台帳（Notion）: https://app.notion.com/p/3bdf8c123ef7818b858deb0b558ea72c
+- 原稿の編集台帳（Notion）: https://app.notion.com/p/5a8433a6c8bd832faf1281025f14e638
 
 ### GitHub Pages を有効にする（初回のみ）
 
