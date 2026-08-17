@@ -102,5 +102,5 @@
 
 ## FOOTER（フッター）
 
-- Instagram URL: **未定**（決まり次第 `.footer__sns` の `href` を差し替え）
+- Instagram URL: https://www.instagram.com/yhyhyear/
 - コピーライト: © 2026 B-CORE. All rights reserved.

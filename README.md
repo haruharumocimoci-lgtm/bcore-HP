@@ -59,5 +59,4 @@ node scripts/build-artifact.mjs
 `index.html` 内に `TODO` コメントで印を付けてあります。決まり次第差し替えてください。
 
 - 入会申し込みフォームのURL（`#joinBtn` の `href`）
-- InstagramアカウントのURL（`.footer__sns` の `href`）
 - STOREとCOACHの写真（現在はプレースホルダー表示）
