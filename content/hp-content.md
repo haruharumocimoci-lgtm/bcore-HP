@@ -41,7 +41,7 @@
 
 ### ONLINE（オンライン）
 
-- LINEでいつでも技術指導
+- LINEで技術指導
 - 平日5:45〜 朝活動（タスク管理・思考トレーニング会）
 - 講義動画をいつでも視聴可能
 - 自社ブランド商品を割引価格で購入
@@ -119,8 +119,21 @@
 `index.html` の `#page-privacy`。11項目構成。決済情報はStripeが直接管理し当塾は保持しない旨を明記。
 問い合わせ窓口メールは特商法ページと同じアドレス（差し替え時は2箇所とも直す）。
 
+## CONTACT（お問い合わせ）
+
+`index.html` の `#page-contact`。連絡手段を1ページにまとめたもの。
+
+- メール: harutomochimaru@icloud.com
+- Instagram DM: @yhyhyear（最もスムーズ）
+- 電話番号: 080-7897-0716（受付時間 平日10:00〜18:00）
+
+## ナビゲーション（ヘッダー右上）
+
+ABOUT / SERVICE / PRICE / STORE / COACH / LEGAL / PRIVACY / CONTACT / JOIN
+（2026-08-18 台帳の変更メモ対応: LEGAL・PRIVACY・CONTACT を右上メニューに追加）
+
 ## FOOTER（フッター）
 
 - Instagram URL: https://www.instagram.com/yhyhyear/
-- フッターリンク: 特定商取引法に基づく表記 / プライバシーポリシー / お問い合わせ（mailto）
+- フッターリンク: 特定商取引法に基づく表記 / プライバシーポリシー / お問い合わせ（#contact ページ）
 - コピーライト: © 2026 B-CORE. All rights reserved.

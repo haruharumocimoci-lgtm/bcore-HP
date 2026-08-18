@@ -125,10 +125,10 @@ ul { list-style: none; }
 
 .nav__menu {
   display: flex;
-  gap: 28px;
-  font-size: 12px;
+  gap: 18px;
+  font-size: 11px;
   font-weight: 700;
-  letter-spacing: .14em;
+  letter-spacing: .12em;
 }
 
 .nav__menu a { position: relative; padding: 4px 0; }
@@ -841,6 +841,9 @@ ul { list-style: none; }
     <a href="#price" data-nav data-key="price">PRICE</a>
     <a href="#store" data-nav data-key="store">STORE</a>
     <a href="#coach" data-nav data-key="coach">COACH</a>
+    <a href="#legal" data-nav data-key="legal">LEGAL</a>
+    <a href="#privacy" data-nav data-key="privacy">PRIVACY</a>
+    <a href="#contact" data-nav data-key="contact">CONTACT</a>
     <a href="#join" class="nav__join" data-nav data-key="join">JOIN</a>
   </nav>
   <button class="nav__burger" id="burger" aria-label="メニュー">
@@ -952,7 +955,7 @@ ul { list-style: none; }
       <article class="service__col">
         <h3 class="service__head">ONLINE<span>オンライン</span></h3>
         <ul>
-          <li>LINEでいつでも技術指導</li>
+          <li>LINEで技術指導</li>
           <li>平日5:45〜 朝活動（タスク管理・思考トレーニング会）</li>
           <li>講義動画をいつでも視聴可能</li>
           <li>自社ブランド商品を割引価格で購入</li>
@@ -1193,7 +1196,29 @@ ul { list-style: none; }
   </section>
 
   <nav class="page-next">
-    <a href="#home" data-nav><span>BACK</span>HOME →</a>
+    <a href="#contact" data-nav><span>NEXT</span>CONTACT →</a>
+  </nav>
+</div>
+
+<!-- ===== PAGE: CONTACT（お問い合わせ） ===== -->
+<div class="vpage" id="page-contact">
+  <section class="page-hero">
+    <h1 class="section__title">CONTACT<span class="section__jp">お問い合わせ</span></h1>
+  </section>
+
+  <section class="section section--flush">
+    <div class="legal">
+      <p class="legal__lead">入会・体験のご相談、サービス内容のご質問など、以下のいずれかの方法でお気軽にご連絡ください。</p>
+      <dl class="legal__dl">
+        <div><dt>メール</dt><dd><a class="legal__link" href="mailto:harutomochimaru@icloud.com">harutomochimaru@icloud.com</a></dd></div>
+        <div><dt>Instagram DM</dt><dd><a class="legal__link" href="https://www.instagram.com/yhyhyear/" target="_blank" rel="noopener">@yhyhyear</a><br><span style="color:#888">DMでのご連絡が最もスムーズです。</span></dd></div>
+        <div><dt>電話番号</dt><dd>080-7897-0716<br><span style="color:#888">受付時間: 平日 10:00〜18:00（土日祝を除く）</span></dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <nav class="page-next">
+    <a href="#join" data-nav><span>NEXT</span>JOIN →</a>
   </nav>
 </div>
 
@@ -1204,7 +1229,7 @@ ul { list-style: none; }
   <nav class="footer__links" aria-label="規約">
     <a href="#legal" data-nav>特定商取引法に基づく表記</a>
     <a href="#privacy" data-nav>プライバシーポリシー</a>
-    <a href="mailto:harutomochimaru@icloud.com">お問い合わせ</a>
+    <a href="#contact" data-nav>お問い合わせ</a>
   </nav>
   <p class="footer__copy">© 2026 B-CORE. All rights reserved.</p>
 </footer>
@@ -1287,7 +1312,7 @@ setTimeout(openUp, 2500); // フォールバック
 
 // ===== Hash router (1ファイル内で複数ページを切替) =====
 const wipe = document.getElementById('wipe');
-const PAGES = ['home', 'about', 'service', 'price', 'store', 'coach', 'join', 'legal', 'privacy'];
+const PAGES = ['home', 'about', 'service', 'price', 'store', 'coach', 'join', 'legal', 'privacy', 'contact'];
 
 function currentKey() {
   const k = (location.hash || '#home').slice(1);
