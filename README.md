@@ -61,7 +61,7 @@ node scripts/build-artifact.mjs
 `index.html` 内に `TODO` コメントで印を付けてあります。決まり次第差し替えてください。
 
 - Stripeの支払いリンクURL（`index.html` 冒頭の `STRIPE_LINKS`）→ 下記「Stripeで決済を受け取る」参照
-- 問い合わせメールアドレス（会社用アドレス作成後に差し替え。`index.html` 内に3箇所: 特商法ページ・プライバシーポリシー・フッター）
+- 問い合わせメールアドレス（会社用アドレス作成後に差し替え。`index.html` 内の4箇所: 特商法ページ・プライバシーポリシー2箇所・フッター。`harutomochimaru@icloud.com` を一括置換すればOK）
 - STOREとCOACHの写真（現在はプレースホルダー表示）
 
 ## 規約ページ
