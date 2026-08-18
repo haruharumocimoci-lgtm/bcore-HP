@@ -61,8 +61,19 @@ node scripts/build-artifact.mjs
 `index.html` 内に `TODO` コメントで印を付けてあります。決まり次第差し替えてください。
 
 - Stripeの支払いリンクURL（`index.html` 冒頭の `STRIPE_LINKS`）→ 下記「Stripeで決済を受け取る」参照
-- InstagramアカウントのURL（`.footer__sns` の `href`）
+- 問い合わせメールアドレス（会社用アドレス作成後に差し替え。`index.html` 内に3箇所: 特商法ページ・プライバシーポリシー・フッター）
 - STOREとCOACHの写真（現在はプレースホルダー表示）
+
+## 規約ページ
+
+Stripeの審査と継続課金のため、次の2ページを `index.html` 内に持っています（フッターからリンク）。
+
+| ハッシュURL | 内容 |
+| --- | --- |
+| `https://b-core.space/#legal` | 特定商取引法に基づく表記 |
+| `https://b-core.space/#privacy` | プライバシーポリシー |
+
+事業者情報・解約/返金ルールを変更する場合は、`#page-legal` の `<dl class="legal__dl">` を直接編集してください。
 
 ## Stripeで決済を受け取る
 

@@ -659,6 +659,69 @@ ul { list-style: none; }
   letter-spacing: .08em;
 }
 
+/* ===== LEGAL（特商法・プライバシーポリシー） ===== */
+.legal {
+  max-width: 880px;
+  margin: 0 auto;
+}
+
+.legal__lead {
+  margin-bottom: 40px;
+  font-size: 13px;
+  line-height: 2.2;
+  color: #555;
+}
+
+.legal__dl {
+  border-top: 1px solid var(--black);
+}
+.legal__dl > div {
+  display: grid;
+  grid-template-columns: 210px 1fr;
+  gap: 28px;
+  padding: 22px 2px;
+  border-bottom: 1px solid var(--gray-mid);
+}
+.legal__dl dt {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .12em;
+  line-height: 2;
+}
+.legal__dl dd {
+  font-size: 13px;
+  line-height: 2.1;
+}
+
+.legal__body h2 {
+  margin-top: 48px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--black);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: .16em;
+}
+.legal__body h2:first-child { margin-top: 0; }
+.legal__body p { margin-top: 16px; font-size: 13px; line-height: 2.1; }
+.legal__body ul { margin-top: 12px; }
+.legal__body li {
+  position: relative;
+  padding-left: 1.2em;
+  font-size: 13px;
+  line-height: 2.1;
+}
+.legal__body li::before { content: "—"; position: absolute; left: 0; color: #999; }
+
+.legal__link { border-bottom: 1px solid currentColor; }
+.legal__link:hover { opacity: .6; }
+
+.legal__date {
+  margin-top: 56px;
+  font-size: 11px;
+  color: #999;
+  letter-spacing: .08em;
+}
+
 /* ===== FOOTER ===== */
 .footer {
   border-top: 1px solid var(--black);
@@ -682,6 +745,19 @@ ul { list-style: none; }
   padding-bottom: 2px;
 }
 .footer__sns:hover { opacity: .6; }
+
+.footer__links {
+  margin-top: 26px;
+  display: flex;
+  gap: 12px 28px;
+  justify-content: center;
+  flex-wrap: wrap;
+  font-size: 11px;
+  letter-spacing: .08em;
+  color: #666;
+}
+.footer__links a { border-bottom: 1px solid var(--gray-mid); padding-bottom: 2px; }
+.footer__links a:hover { opacity: .6; }
 
 .footer__copy {
   margin-top: 28px;
@@ -738,6 +814,7 @@ ul { list-style: none; }
   .service__grid { grid-template-columns: 1fr; }
   .price__grid { grid-template-columns: 1fr; }
   .coach__grid { grid-template-columns: 1fr; }
+  .legal__dl > div { grid-template-columns: 1fr; gap: 6px; padding: 18px 2px; }
   .section { padding: 80px 6vw; }
 }
 </style>
@@ -1007,14 +1084,128 @@ ul { list-style: none; }
     </div>
 
     <p class="join__note" id="joinNote">申し込みフォームは準備中です。お急ぎの方はInstagramのDMからご連絡ください。</p>
+    <p class="join__note">お申し込み前に <a href="#legal" class="legal__link" data-nav>特定商取引法に基づく表記</a> をご確認ください。</p>
   </section>
+</div>
+
+<!-- ===== PAGE: LEGAL（特定商取引法に基づく表記） ===== -->
+<div class="vpage" id="page-legal">
+  <section class="page-hero">
+    <h1 class="section__title">LEGAL<span class="section__jp">特定商取引法に基づく表記</span></h1>
+  </section>
+
+  <section class="section section--flush">
+    <div class="legal">
+      <dl class="legal__dl">
+        <div><dt>販売事業者</dt><dd>持丸 春聡</dd></div>
+        <div><dt>運営統括責任者</dt><dd>持丸 春聡</dd></div>
+        <div><dt>所在地</dt><dd>ご請求をいただいた場合に、遅滞なく開示いたします。</dd></div>
+        <div><dt>電話番号</dt><dd>080-7897-0716<br><span style="color:#888">受付時間: 平日 10:00〜18:00（土日祝を除く）</span></dd></div>
+        <div><dt>メールアドレス</dt><dd><a class="legal__link" href="mailto:harutomochimaru@icloud.com">harutomochimaru@icloud.com</a></dd></div>
+        <div><dt>サービス名</dt><dd>B-CORE（野球塾）</dd></div>
+        <div><dt>販売価格</dt><dd>ONLINEプラン: 月額 5,500円（税込）<br>OFFLINEプラン: 月額 9,900円（税込）<br>物販商品: 各商品に表示された価格（税込）</dd></div>
+        <div><dt>商品代金以外の<br>必要料金</dt><dd>インターネット接続料金・通信料金（お客様のご負担）<br>オフライン開催地までの交通費<br>物販商品の送料（該当する場合は購入画面に表示）</dd></div>
+        <div><dt>お支払い方法</dt><dd>クレジットカード決済（Stripe）</dd></div>
+        <div><dt>お支払い時期</dt><dd>月額プラン: 初回はお申し込み時に決済。以降は毎月、初回決済日と同じ日に自動で決済されます。<br>物販商品: ご購入時に決済。</dd></div>
+        <div><dt>サービスの提供時期</dt><dd>月額プラン: 決済完了後、順次ご案内（グループへのご招待等）いたします。オフライン指導は決済完了後の最初の開催日からご参加いただけます。<br>物販商品: 決済完了後、7営業日以内に発送または受け渡しいたします。</dd></div>
+        <div><dt>解約について</dt><dd>次回請求日の3日前までにメールまたはInstagramのDMにてご連絡ください。翌月以降の請求は発生しません。ご連絡が次回請求日の3日前を過ぎた場合は、翌月分までのご請求となります。</dd></div>
+        <div><dt>返品・返金について</dt><dd>サービスの性質上、決済済みの月額料金の返金は承っておりません。月の途中で解約された場合も、日割りでの返金はいたしかねます（その月の末日までサービスをご利用いただけます）。<br>物販商品は、商品に破損・不良があった場合に限り、到着後7日以内にご連絡いただければ交換または返金いたします。</dd></div>
+        <div><dt>動作環境</dt><dd>インターネットに接続できる端末、およびLINEアプリのご利用が可能な環境</dd></div>
+      </dl>
+      <p class="legal__date">制定日: 2026年8月18日</p>
+    </div>
+  </section>
+
+  <nav class="page-next">
+    <a href="#privacy" data-nav><span>NEXT</span>PRIVACY POLICY →</a>
+  </nav>
+</div>
+
+<!-- ===== PAGE: PRIVACY（プライバシーポリシー） ===== -->
+<div class="vpage" id="page-privacy">
+  <section class="page-hero">
+    <h1 class="section__title">PRIVACY<span class="section__jp">プライバシーポリシー</span></h1>
+  </section>
+
+  <section class="section section--flush">
+    <div class="legal">
+      <p class="legal__lead">B-CORE（以下「当塾」）は、お客様の個人情報を適切に取り扱うことが社会的責務であると考え、以下のとおりプライバシーポリシーを定めます。</p>
+
+      <div class="legal__body">
+        <h2>1. 事業者情報</h2>
+        <p>名称: B-CORE<br>運営責任者: 持丸 春聡<br>連絡先: <a class="legal__link" href="mailto:harutomochimaru@icloud.com">harutomochimaru@icloud.com</a></p>
+
+        <h2>2. 取得する情報</h2>
+        <p>当塾は、サービスの提供にあたり以下の情報を取得します。</p>
+        <ul>
+          <li>お名前、選手のお名前、学年・所属チーム</li>
+          <li>メールアドレス、電話番号、住所</li>
+          <li>お支払いに関する情報（後述のとおり、カード番号は当塾では保持しません）</li>
+          <li>ご相談・お問い合わせの内容</li>
+        </ul>
+
+        <h2>3. 利用目的</h2>
+        <ul>
+          <li>指導・面談・連絡など、サービスの提供および運営のため</li>
+          <li>月額料金の決済、および請求に関するご連絡のため</li>
+          <li>ご質問・お問い合わせへの対応のため</li>
+          <li>サービス内容の改善、および新しいご案内のため</li>
+        </ul>
+
+        <h2>4. 決済情報の取り扱い</h2>
+        <p>お支払いには決済代行サービス「Stripe」を利用しています。クレジットカード番号などの決済情報はStripe社が直接取得・管理しており、当塾がカード番号を受け取ったり保存したりすることは一切ありません。Stripe社における取り扱いについては、同社のプライバシーポリシーをご確認ください。</p>
+
+        <h2>5. 第三者への提供</h2>
+        <p>当塾は、次の場合を除き、お客様の個人情報を第三者に提供することはありません。</p>
+        <ul>
+          <li>お客様ご本人の同意がある場合</li>
+          <li>決済処理のために決済代行会社（Stripe）へ提供する場合</li>
+          <li>法令に基づく開示請求があった場合</li>
+          <li>人の生命・身体・財産の保護のために必要で、本人の同意を得ることが困難な場合</li>
+        </ul>
+
+        <h2>6. 利用する外部サービス</h2>
+        <ul>
+          <li>Stripe（決済処理）</li>
+          <li>GitHub Pages（本ウェブサイトのホスティング）</li>
+          <li>LINE、Instagram（ご連絡・情報発信）</li>
+        </ul>
+        <p>本ウェブサイトでは、現在アクセス解析ツールおよび広告目的のCookieは使用していません。</p>
+
+        <h2>7. 個人情報の管理</h2>
+        <p>当塾は、取得した個人情報への不正アクセス、紛失、漏えい等を防止するため、必要かつ適切な管理を行います。利用目的を達成し保存の必要がなくなった情報は、遅滞なく消去いたします。</p>
+
+        <h2>8. 開示・訂正・削除のご請求</h2>
+        <p>お客様ご本人（未成年の場合は保護者の方）から、個人情報の開示・訂正・利用停止・削除のご請求があった場合は、ご本人であることを確認のうえ、速やかに対応いたします。上記の連絡先までお申し付けください。</p>
+
+        <h2>9. 未成年の方について</h2>
+        <p>18歳未満の方がサービスをご利用になる場合は、保護者の方の同意を得たうえでお申し込みください。お申し込みの手続きおよびお支払いは保護者の方が行ってください。</p>
+
+        <h2>10. 本ポリシーの変更</h2>
+        <p>法令の変更やサービス内容の変更に応じて、本ポリシーを改定することがあります。変更後の内容は本ページに掲載した時点から効力を生じるものとします。</p>
+
+        <h2>11. お問い合わせ窓口</h2>
+        <p>個人情報の取り扱いに関するお問い合わせは、<a class="legal__link" href="mailto:harutomochimaru@icloud.com">harutomochimaru@icloud.com</a> までご連絡ください。</p>
+      </div>
+
+      <p class="legal__date">制定日: 2026年8月18日</p>
+    </div>
+  </section>
+
+  <nav class="page-next">
+    <a href="#home" data-nav><span>BACK</span>HOME →</a>
+  </nav>
 </div>
 
 <!-- ===== FOOTER ===== -->
 <footer class="footer">
   <p class="footer__logo">B-CORE</p>
-  <!-- TODO: インスタの@が決まったら差し替え -->
-  <a class="footer__sns" href="https://www.instagram.com/" target="_blank" rel="noopener">INSTAGRAM</a>
+  <a class="footer__sns" href="https://www.instagram.com/yhyhyear/" target="_blank" rel="noopener">INSTAGRAM</a>
+  <nav class="footer__links" aria-label="規約">
+    <a href="#legal" data-nav>特定商取引法に基づく表記</a>
+    <a href="#privacy" data-nav>プライバシーポリシー</a>
+    <a href="mailto:harutomochimaru@icloud.com">お問い合わせ</a>
+  </nav>
   <p class="footer__copy">© 2026 B-CORE. All rights reserved.</p>
 </footer>
 
@@ -1096,7 +1287,7 @@ setTimeout(openUp, 2500); // フォールバック
 
 // ===== Hash router (1ファイル内で複数ページを切替) =====
 const wipe = document.getElementById('wipe');
-const PAGES = ['home', 'about', 'service', 'price', 'store', 'coach', 'join'];
+const PAGES = ['home', 'about', 'service', 'price', 'store', 'coach', 'join', 'legal', 'privacy'];
 
 function currentKey() {
   const k = (location.hash || '#home').slice(1);
