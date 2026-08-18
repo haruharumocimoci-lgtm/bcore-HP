@@ -820,6 +820,22 @@ ul { list-style: none; }
   .legal__dl > div { grid-template-columns: 1fr; gap: 6px; padding: 18px 2px; }
   .section { padding: 80px 6vw; }
 }
+
+/* ===== Stripe テストモードの目印（?test=1 のときだけ表示） ===== */
+.testflag {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  padding: 8px 6vw;
+  background: var(--black);
+  color: var(--white);
+  font-size: 12px;
+  letter-spacing: .04em;
+  text-align: center;
+  pointer-events: none;
+}
 </style>
 </head>
 <body>
@@ -1247,6 +1263,15 @@ const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').match
    で発行された https://buy.stripe.com/... のURLを、下の '' の中に貼るだけ。
    貼った瞬間から、サイト内の該当ボタンがStripeの決済ページに繋がります。
    空のままにした項目は「準備中」の案内が出るだけで、決済には繋がりません。
+
+   ■ 先にテストで確かめたいとき
+   Stripeを「テストモード」に切り替えて発行したリンク（https://buy.stripe.com/test_... ）を
+   STRIPE_TEST_LINKS の側に貼ってください。
+   　通常のURL  https://b-core.space/        → STRIPE_LINKS（本番）を使う
+   　?test=1付き https://b-core.space/?test=1 → STRIPE_TEST_LINKS（テスト）を使う
+   お客さんが見る通常のURLには影響しないので、本番リンクが空のままでも安全に確認できます。
+   テスト決済のカード番号: 4242 4242 4242 4242 ／ 有効期限は未来の日付 ／ CVCは任意の3桁
+
    ※ この設定はページ最上部（ページ遷移の処理より前）に置いてください。
    ========================================================= */
 const STRIPE_LINKS = {
@@ -1255,11 +1280,27 @@ const STRIPE_LINKS = {
   spasub:  ''    // スパサブ ¥300（都度購入）
 };
 
+// テストモードで発行したリンク（?test=1 を付けて開いたときだけ使われる）
+const STRIPE_TEST_LINKS = {
+  online:  'https://buy.stripe.com/test_cNidRb3Br9uw1lZ7KIbQY00',   // テスト用 ONLINE
+  offline: 'https://buy.stripe.com/test_5kQ14p3Br2240hVe96bQY01',   // テスト用 OFFLINE
+  spasub:  'https://buy.stripe.com/test_8x2eVf9ZP0Y07KnghebQY02'    // テスト用 スパサブ
+};
+
 const STRIPE_PENDING_MSG = '申し込みフォームは準備中です。お手数ですがInstagramのDMからご連絡ください。';
+
+// ?test=1 付きURL、またはローカル表示（localhost・ファイル直開き）のときだけテスト用リンクを使う
+const stripeTestMode =
+  new URLSearchParams(location.search).get('test') === '1' ||
+  location.hostname === 'localhost' ||
+  location.hostname === '127.0.0.1' ||
+  location.protocol === 'file:';
+
+const stripeLinks = stripeTestMode ? STRIPE_TEST_LINKS : STRIPE_LINKS;
 
 (function setupStripeLinks() {
   document.querySelectorAll('[data-stripe]').forEach(el => {
-    const url = STRIPE_LINKS[el.dataset.stripe];
+    const url = stripeLinks[el.dataset.stripe];
     if (url) {
       el.setAttribute('href', url);
       el.setAttribute('rel', 'noopener');
@@ -1275,13 +1316,21 @@ const STRIPE_PENDING_MSG = '申し込みフォームは準備中です。お手�
   });
 
   const joinNote = document.getElementById('joinNote');
-  if (joinNote && (STRIPE_LINKS.online || STRIPE_LINKS.offline)) {
+  if (joinNote && (stripeLinks.online || stripeLinks.offline)) {
     joinNote.textContent = 'お支払いはStripeの安全な決済ページで行われます。カード情報が当サイトに保存されることはありません。';
   }
 
   const storeNote = document.getElementById('storeNote');
-  if (storeNote && STRIPE_LINKS.spasub) {
+  if (storeNote && stripeLinks.spasub) {
     storeNote.textContent = '※ 商品は今後追加予定です。';
+  }
+
+  // テスト用リンクで表示していることを画面上でも分かるようにする
+  if (stripeTestMode && Object.values(stripeLinks).some(Boolean)) {
+    const flag = document.createElement('p');
+    flag.className = 'testflag';
+    flag.textContent = 'Stripe テストモードで表示中 — 実際の課金は発生しません（テストカード 4242 4242 4242 4242）';
+    document.body.appendChild(flag);
   }
 })();
 

@@ -60,7 +60,7 @@ node scripts/build-artifact.mjs
 
 `index.html` 内に `TODO` コメントで印を付けてあります。決まり次第差し替えてください。
 
-- Stripeの支払いリンクURL（`index.html` 冒頭の `STRIPE_LINKS`）→ 下記「Stripeで決済を受け取る」参照
+- Stripeの支払いリンクURL（`index.html` 冒頭の `STRIPE_LINKS` / テスト用は `STRIPE_TEST_LINKS`）→ 下記「Stripeで決済を受け取る」参照
 - 問い合わせメールアドレス（会社用アドレス作成後に差し替え。`index.html` 内の4箇所: 特商法ページ・プライバシーポリシー2箇所・フッター。`harutomochimaru@icloud.com` を一括置換すればOK）
 - STOREとCOACHの写真（現在はプレースホルダー表示）
 
@@ -116,10 +116,35 @@ const STRIPE_LINKS = {
 貼って push すると、PRICEページとJOINページの申し込みボタンがStripeの決済ページに繋がります。
 空のままの項目は今まで通り「準備中」の案内が出るだけなので、片方だけ先に公開しても問題ありません。
 
-### 4. 本番の前に
+### 4. 先にテストモードで確認する
 
-- 最初は**テストモード**のリンクで動作確認（テストカード `4242 4242 4242 4242`）
+本番リンクを貼る前に、**テスト決済だけ先に試せます**。
+Stripeダッシュボードを「テストモード」に切り替えて発行したリンク（`https://buy.stripe.com/test_...`）を、
+`index.html` の `STRIPE_TEST_LINKS` の側に貼ってください。
+
+```js
+const STRIPE_TEST_LINKS = {
+  online:  'https://buy.stripe.com/test_xxxxxxxx',
+  offline: 'https://buy.stripe.com/test_yyyyyyyy',
+  spasub:  ''
+};
+```
+
+| 開くURL | 使われるリンク |
+| --- | --- |
+| https://b-core.space/ （通常） | `STRIPE_LINKS`（本番） |
+| https://b-core.space/?test=1 | `STRIPE_TEST_LINKS`（テスト） |
+| ローカル表示（localhost・ファイル直開き） | `STRIPE_TEST_LINKS`（テスト） |
+
+`?test=1` で開いたときだけ画面下に「Stripe テストモードで表示中」の黒い帯が出ます。
+お客さんが見る通常のURLはテストリンクに繋がらないので、**本番リンクが空のままでも安全に確認できます**。
+
+テスト決済に使うカード: `4242 4242 4242 4242` / 有効期限は未来の日付 / CVCは任意の3桁。
+
+### 5. 本番の前に
+
 - 入金を受け取るには Stripeダッシュボードで**本人確認と銀行口座の登録**が必要です
-- 本番モードに切り替えたら、リンクを本番用のURLに貼り替えてください
+- 本番モードに切り替えて発行したURLを `STRIPE_LINKS` に貼れば、そのまま公開されます
+- テスト用の `STRIPE_TEST_LINKS` は残しておいて問題ありません（`?test=1` のときしか使われません）
 
 > 手数料の目安: 国内カード決済 3.6%（例: 5,500円 → 約199円）。サーバー代・月額固定費はかかりません。
