@@ -32,6 +32,7 @@ body {
 }
 
 img { max-width: 100%; display: block; }
+[hidden] { display: none !important; }
 a { color: inherit; text-decoration: none; }
 ul { list-style: none; }
 
@@ -520,6 +521,13 @@ ul { list-style: none; }
 .store__price { font-size: 14px; font-weight: 700; }
 .store__price span { font-size: 11px; color: #888; }
 
+.store__btn {
+  margin-top: 16px;
+  padding: 12px 30px;
+  font-size: 12px;
+  letter-spacing: .14em;
+}
+
 .store__note {
   margin-top: 48px;
   font-size: 12px;
@@ -635,6 +643,14 @@ ul { list-style: none; }
   font-variant-numeric: tabular-nums;
 }
 .join__plan p span { font-size: 12px; font-weight: 700; }
+.join__plan .btn {
+  display: block;
+  margin-top: 20px;
+  padding: 12px 0;
+  text-align: center;
+  font-size: 12px;
+  letter-spacing: .14em;
+}
 
 .join__note {
   margin-top: 28px;
@@ -895,13 +911,13 @@ ul { list-style: none; }
       <article class="price__card">
         <h3>ONLINE</h3>
         <p class="price__amount">¥5,500<span>/月（税込）</span></p>
-        <a href="#join" class="btn btn--line" data-nav>申し込む</a>
+        <a href="#join" class="btn btn--line" data-nav data-stripe="online">申し込む</a>
       </article>
       <article class="price__card price__card--main">
         <h3>OFFLINE</h3>
         <p class="price__amount">¥9,900<span>/月（税込）</span></p>
         <p class="price__note">オンラインの全サービス込み</p>
-        <a href="#join" class="btn btn--fill" data-nav>申し込む</a>
+        <a href="#join" class="btn btn--fill" data-nav data-stripe="offline">申し込む</a>
       </article>
     </div>
   </section>
@@ -923,9 +939,10 @@ ul { list-style: none; }
         <div class="ph ph--square" data-ph="PRODUCT PHOTO"></div>
         <h3>スパサブ</h3>
         <p class="store__price">¥300<span>（税込）</span></p>
+        <a href="#" class="btn btn--line store__btn" data-stripe="spasub" hidden>購入する</a>
       </article>
     </div>
-    <p class="store__note">※ 商品は今後追加予定。購入方法はお問い合わせください。</p>
+    <p class="store__note" id="storeNote">※ 商品は今後追加予定。購入方法はお問い合わせください。</p>
   </section>
 
   <nav class="page-next">
@@ -980,16 +997,16 @@ ul { list-style: none; }
       <div class="join__plan">
         <h3>ONLINE</h3>
         <p>¥5,500<span>/月（税込）</span></p>
+        <a href="#" class="btn btn--invert" data-stripe="online">このプランで申し込む</a>
       </div>
       <div class="join__plan">
         <h3>OFFLINE</h3>
         <p>¥9,900<span>/月（税込）</span></p>
+        <a href="#" class="btn btn--invert" data-stripe="offline">このプランで申し込む</a>
       </div>
     </div>
 
-    <!-- TODO: 申込先URLが決まったら href を差し替え -->
-    <a href="#" class="btn btn--invert" id="joinBtn">入会申し込み</a>
-    <p class="join__note">申し込みフォームは準備中です。お急ぎの方はInstagramのDMからご連絡ください。</p>
+    <p class="join__note" id="joinNote">申し込みフォームは準備中です。お急ぎの方はInstagramのDMからご連絡ください。</p>
   </section>
 </div>
 
@@ -1003,6 +1020,51 @@ ul { list-style: none; }
 
 <script>
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* =========================================================
+   Stripe 決済リンク設定
+   ---------------------------------------------------------
+   Stripeダッシュボード →「商品カタログ」→ 商品を作成 →「支払いリンク」
+   で発行された https://buy.stripe.com/... のURLを、下の '' の中に貼るだけ。
+   貼った瞬間から、サイト内の該当ボタンがStripeの決済ページに繋がります。
+   空のままにした項目は「準備中」の案内が出るだけで、決済には繋がりません。
+   ※ この設定はページ最上部（ページ遷移の処理より前）に置いてください。
+   ========================================================= */
+const STRIPE_LINKS = {
+  online:  '',   // ONLINE  ¥5,500/月（サブスクリプション）
+  offline: '',   // OFFLINE ¥9,900/月（サブスクリプション）
+  spasub:  ''    // スパサブ ¥300（都度購入）
+};
+
+const STRIPE_PENDING_MSG = '申し込みフォームは準備中です。お手数ですがInstagramのDMからご連絡ください。';
+
+(function setupStripeLinks() {
+  document.querySelectorAll('[data-stripe]').forEach(el => {
+    const url = STRIPE_LINKS[el.dataset.stripe];
+    if (url) {
+      el.setAttribute('href', url);
+      el.setAttribute('rel', 'noopener');
+      el.removeAttribute('data-nav'); // Stripeへ直接遷移させる（ページ内遷移を無効化）
+      el.removeAttribute('hidden');
+    } else if (!el.hasAttribute('data-nav')) {
+      // リンク未設定 かつ ページ内遷移先も無い場合は案内を出す
+      el.addEventListener('click', e => {
+        e.preventDefault();
+        alert(STRIPE_PENDING_MSG);
+      });
+    }
+  });
+
+  const joinNote = document.getElementById('joinNote');
+  if (joinNote && (STRIPE_LINKS.online || STRIPE_LINKS.offline)) {
+    joinNote.textContent = 'お支払いはStripeの安全な決済ページで行われます。カード情報が当サイトに保存されることはありません。';
+  }
+
+  const storeNote = document.getElementById('storeNote');
+  if (storeNote && STRIPE_LINKS.spasub) {
+    storeNote.textContent = '※ 商品は今後追加予定です。';
+  }
+})();
 
 // ===== Split text into chars =====
 function splitChars(el) {
@@ -1180,15 +1242,6 @@ function tick() {
   requestAnimationFrame(tick);
 }
 requestAnimationFrame(tick);
-
-// ===== Join button placeholder =====
-const joinBtn = document.getElementById('joinBtn');
-joinBtn.addEventListener('click', e => {
-  if (e.currentTarget.getAttribute('href') === '#') {
-    e.preventDefault();
-    alert('申し込みフォームは準備中です。InstagramのDMからご連絡ください。');
-  }
-});
 
 // ===== 初期表示 =====
 showPage(currentKey(), false);
