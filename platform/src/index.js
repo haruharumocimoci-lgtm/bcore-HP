@@ -9,9 +9,15 @@
  *   POST /stripe/webhook  … Stripeからの通知を受ける（Stripeダッシュボードに登録するURL）
  *   GET  /health          … 動作確認用
  *
- * 必要なシークレット（wrangler secret put で設定）:
- *   STRIPE_WEBHOOK_SECRET … whsec_xxx（Webhook登録時にStripeが発行）
- *   STRIPE_SECRET_KEY     … sk_live_xxx（顧客のメールアドレス取得に使用。任意だが推奨）
+ * 必要なシークレット（Cloudflareの「変数とシークレット」で設定）:
+ *   STRIPE_WEBHOOK_SECRET      … whsec_xxx（本番モードのWebhook登録時にStripeが発行）
+ *   STRIPE_WEBHOOK_SECRET_TEST … whsec_xxx（テストモード用。任意）
+ *   STRIPE_SECRET_KEY          … sk_live_xxx（顧客のメール取得用。任意だが推奨）
+ *   STRIPE_SECRET_KEY_TEST     … sk_test_xxx（テストモード用。任意）
+ *
+ * 本番とテストのどちらの合言葉でも受け付けます（署名が合った方を採用）。
+ * テストモードのイベントは livemode:false で届くので、
+ * データベースには is_test = 1 を付けて本番の会員と区別します。
  */
 
 const encoder = new TextEncoder();
@@ -35,8 +41,14 @@ export default {
    ========================================================= */
 
 async function handleStripeWebhook(request, env) {
-  if (!env.STRIPE_WEBHOOK_SECRET) {
-    console.error('STRIPE_WEBHOOK_SECRET が未設定です');
+  // 貼り付け時に前後の空白や改行が混ざることがあるので取り除く
+  const secrets = [
+    { mode: 'live', value: (env.STRIPE_WEBHOOK_SECRET || '').trim() },
+    { mode: 'test', value: (env.STRIPE_WEBHOOK_SECRET_TEST || '').trim() },
+  ].filter(s => s.value);
+
+  if (secrets.length === 0) {
+    console.error('STRIPE_WEBHOOK_SECRET も STRIPE_WEBHOOK_SECRET_TEST も未設定です');
     return jsonResponse({ error: 'not configured' }, 500);
   }
 
@@ -44,16 +56,20 @@ async function handleStripeWebhook(request, env) {
   const payload = await request.text();
   const signature = request.headers.get('stripe-signature') || '';
 
-  // 貼り付け時に前後の空白や改行が混ざることがあるので取り除く
-  const secret = env.STRIPE_WEBHOOK_SECRET.trim();
+  // 本番・テストのどちらの合言葉で署名されたものかを判定する
+  let matched = null;
+  for (const secret of secrets) {
+    if (await verifyStripeSignature(payload, signature, secret.value)) {
+      matched = secret;
+      break;
+    }
+  }
 
-  const verified = await verifyStripeSignature(payload, signature, secret);
-  if (!verified) {
+  if (!matched) {
     // 署名が合わない = Stripe以外からの偽の通知。処理せず拒否する
     // 原因の切り分け用。鍵の値は一切出さず、形が正しいかだけ記録する
     console.error(
-      `署名が一致しません。secretの長さ=${secret.length} ` +
-      `whsec_で始まる=${secret.startsWith('whsec_')} ` +
+      `署名が一致しません。試した鍵=${secrets.map(s => `${s.mode}(長さ${s.value.length},whsec_=${s.value.startsWith('whsec_')})`).join(' ')} ` +
       `署名ヘッダー=${signature ? 'あり' : 'なし'}`
     );
     return jsonResponse({ error: 'invalid signature' }, 400);
@@ -71,15 +87,15 @@ async function handleStripeWebhook(request, env) {
 
   // 同じイベントが再送されても二重処理しない
   const first = await env.DB.prepare(
-    'INSERT OR IGNORE INTO webhook_events (id, type, received_at) VALUES (?, ?, ?)'
-  ).bind(event.id, event.type, nowSec()).run();
+    'INSERT OR IGNORE INTO webhook_events (id, type, is_test, received_at) VALUES (?, ?, ?, ?)'
+  ).bind(event.id, event.type, event.livemode === false ? 1 : 0, nowSec()).run();
 
   if (!first.meta?.changes) {
     return jsonResponse({ received: true, duplicate: true });
   }
 
   try {
-    await dispatch(event, env);
+    await dispatch(event, env, { isTest: event.livemode === false, mode: matched.mode });
   } catch (err) {
     // 失敗したイベントは記録を消し、Stripeに再送させる
     await env.DB.prepare('DELETE FROM webhook_events WHERE id = ?').bind(event.id).run();
@@ -90,7 +106,7 @@ async function handleStripeWebhook(request, env) {
   return jsonResponse({ received: true });
 }
 
-async function dispatch(event, env) {
+async function dispatch(event, env, ctx) {
   const object = event.data?.object || {};
 
   switch (event.type) {
@@ -99,7 +115,7 @@ async function dispatch(event, env) {
       const customerId = asId(object.customer);
       const email = object.customer_details?.email || object.customer_email;
       if (customerId) {
-        await upsertCustomer(env, customerId, email, object.customer_details?.name);
+        await upsertCustomer(env, customerId, email, object.customer_details?.name, ctx);
         if (email) await backfillEmail(env, customerId, email);
       }
       return;
@@ -108,7 +124,7 @@ async function dispatch(event, env) {
     case 'customer.created':
     case 'customer.updated': {
       if (object.id) {
-        await upsertCustomer(env, object.id, object.email, object.name);
+        await upsertCustomer(env, object.id, object.email, object.name, ctx);
         if (object.email) await backfillEmail(env, object.id, normalizeEmail(object.email));
       }
       return;
@@ -117,7 +133,7 @@ async function dispatch(event, env) {
     case 'customer.subscription.created':
     case 'customer.subscription.updated':
     case 'customer.subscription.deleted': {
-      await upsertSubscription(event, env);
+      await upsertSubscription(event, env, ctx);
       return;
     }
 
@@ -131,16 +147,17 @@ async function dispatch(event, env) {
    データベース更新
    ========================================================= */
 
-async function upsertCustomer(env, customerId, email, name) {
+async function upsertCustomer(env, customerId, email, name, ctx = {}) {
   const now = nowSec();
   await env.DB.prepare(`
-    INSERT INTO customers (id, email, name, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?)
+    INSERT INTO customers (id, email, name, is_test, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       email      = COALESCE(excluded.email, customers.email),
       name       = COALESCE(excluded.name,  customers.name),
+      is_test    = excluded.is_test,
       updated_at = excluded.updated_at
-  `).bind(customerId, normalizeEmail(email), name || null, now, now).run();
+  `).bind(customerId, normalizeEmail(email), name || null, ctx.isTest ? 1 : 0, now, now).run();
 }
 
 // 顧客のメールアドレスが後から判明したとき、契約テーブル側にも反映する
@@ -151,7 +168,7 @@ async function backfillEmail(env, customerId, email) {
   ).bind(email, nowSec(), customerId, email).run();
 }
 
-async function upsertSubscription(event, env) {
+async function upsertSubscription(event, env, ctx = {}) {
   const sub = event.data.object;
   const customerId = asId(sub.customer);
   if (!sub.id || !customerId) throw new Error('subscription に id / customer がありません');
@@ -165,14 +182,14 @@ async function upsertSubscription(event, env) {
   // 解約イベントのときは status が active のまま届くことがあるため上書きする
   const status = event.type === 'customer.subscription.deleted' ? 'canceled' : sub.status;
 
-  const email = await resolveEmail(env, customerId);
+  const email = await resolveEmail(env, customerId, ctx);
   const now = nowSec();
 
   await env.DB.prepare(`
     INSERT INTO subscriptions
       (id, customer_id, email, plan, price_id, status, current_period_end,
-       cancel_at_period_end, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       cancel_at_period_end, is_test, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       customer_id          = excluded.customer_id,
       email                = COALESCE(excluded.email, subscriptions.email),
@@ -181,10 +198,11 @@ async function upsertSubscription(event, env) {
       status               = excluded.status,
       current_period_end   = COALESCE(excluded.current_period_end, subscriptions.current_period_end),
       cancel_at_period_end = excluded.cancel_at_period_end,
+      is_test              = excluded.is_test,
       updated_at           = excluded.updated_at
   `).bind(
     sub.id, customerId, email, planFromPrice(priceId, env), priceId, status, periodEnd,
-    sub.cancel_at_period_end ? 1 : 0, now, now
+    sub.cancel_at_period_end ? 1 : 0, ctx.isTest ? 1 : 0, now, now
   ).run();
 }
 
@@ -197,15 +215,17 @@ function planFromPrice(priceId, env) {
 }
 
 // customer_id からメールアドレスを引く。DBになければStripeに問い合わせる
-async function resolveEmail(env, customerId) {
+async function resolveEmail(env, customerId, ctx = {}) {
   const row = await env.DB.prepare('SELECT email FROM customers WHERE id = ?')
     .bind(customerId).first();
   if (row?.email) return row.email;
 
-  if (!env.STRIPE_SECRET_KEY) return null;
+  // テストモードのイベントにはテスト用のキーを使う（本番キーでは引けない）
+  const apiKey = ((ctx.isTest ? env.STRIPE_SECRET_KEY_TEST : env.STRIPE_SECRET_KEY) || '').trim();
+  if (!apiKey) return null;
 
   const res = await fetch(`https://api.stripe.com/v1/customers/${encodeURIComponent(customerId)}`, {
-    headers: { Authorization: `Bearer ${env.STRIPE_SECRET_KEY}` },
+    headers: { Authorization: `Bearer ${apiKey}` },
   });
   if (!res.ok) {
     console.error(`Stripeから顧客を取得できませんでした ${customerId}: ${res.status}`);
@@ -213,7 +233,7 @@ async function resolveEmail(env, customerId) {
   }
   const customer = await res.json();
   const email = normalizeEmail(customer.email);
-  if (email) await upsertCustomer(env, customerId, email, customer.name);
+  if (email) await upsertCustomer(env, customerId, email, customer.name, ctx);
   return email;
 }
 

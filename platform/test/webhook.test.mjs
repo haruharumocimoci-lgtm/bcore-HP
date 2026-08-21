@@ -6,6 +6,7 @@ import { createHmac } from 'node:crypto';
 
 const BASE = process.env.WORKER_URL || 'http://127.0.0.1:8787';
 const SECRET = process.env.STRIPE_WEBHOOK_SECRET || 'whsec_test_secret';
+const SECRET_TEST = process.env.STRIPE_WEBHOOK_SECRET_TEST || 'whsec_testmode_secret';
 
 let passed = 0, failed = 0;
 function check(name, ok, detail) {
@@ -31,7 +32,7 @@ async function post(event, sigHeader) {
   return { status: res.status, body: await res.json().catch(() => ({})) };
 }
 
-const evt = (id, type, object) => ({ id, type, data: { object } });
+const evt = (id, type, object, livemode = true) => ({ id, type, livemode, data: { object } });
 
 console.log('\n== 署名の検証 ==');
 {
@@ -118,6 +119,27 @@ console.log('\n== 通知が逆順で届いた場合 ==');
     customer_details: { email: 'later@example.com', name: '後から判明' },
   }));
   check('あとから届いた決済完了を受け付ける', r.status === 200, JSON.stringify(r));
+}
+
+console.log('\n== テストモード ==');
+// テストモードのStripeは別の合言葉で署名してくる。どちらでも受け付ける
+{
+  const e = evt('evt_t1', 'customer.updated', { id: 'cus_TESTMODE', email: 'sandbox@example.com' }, false);
+  const payload = JSON.stringify(e);
+  const r = await post(e, sign(payload, SECRET_TEST));
+  check('テストモードの合言葉で署名された通知を受け付ける', r.status === 200, JSON.stringify(r));
+}
+{
+  const e = evt('evt_t2', 'customer.updated', { id: 'cus_LIVEMODE', email: 'real@example.com' }, true);
+  const payload = JSON.stringify(e);
+  const r = await post(e, sign(payload, SECRET));
+  check('本番の合言葉で署名された通知も引き続き受け付ける', r.status === 200, JSON.stringify(r));
+}
+{
+  const e = evt('evt_t3', 'customer.updated', { id: 'cus_X' }, false);
+  const payload = JSON.stringify(e);
+  const r = await post(e, sign(payload, 'whsec_totally_unrelated'));
+  check('どちらとも違う合言葉は拒否する', r.status === 400, JSON.stringify(r));
 }
 
 console.log('\n== その他 ==');
