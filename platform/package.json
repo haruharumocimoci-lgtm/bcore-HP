@@ -1,0 +1,15 @@
+{
+  "name": "bcore-members",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "schema:local": "wrangler d1 execute bcore-members --local --file schema.sql",
+    "schema:remote": "wrangler d1 execute bcore-members --remote --file schema.sql",
+    "test": "node test/webhook.test.mjs"
+  },
+  "devDependencies": {
+    "wrangler": "^4"
+  }
+}

@@ -1,0 +1,20 @@
+name = "bcore-members"
+main = "src/index.js"
+compatibility_date = "2026-08-21"
+
+# 会員データベース（Cloudflare D1）
+[[d1_databases]]
+binding = "DB"
+database_name = "bcore-members"
+database_id = "7c64b837-6471-40ba-987d-916c5e6c75cd"
+
+# 支払いリンクの price_id を書くと、契約がどちらのプランか判別できるようになります。
+# Stripeダッシュボード →「商品カタログ」→ 商品 → 料金 の price_xxxxx をコピーしてください。
+# 空のままでも会員判定は動きます（プラン名が空欄になるだけ）。
+[vars]
+PRICE_ONLINE = ""
+PRICE_OFFLINE = ""
+
+# シークレット（wrangler.toml には書かない。コマンドで登録する）
+#   npx wrangler secret put STRIPE_WEBHOOK_SECRET
+#   npx wrangler secret put STRIPE_SECRET_KEY

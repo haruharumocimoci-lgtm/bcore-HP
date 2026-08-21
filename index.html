@@ -718,6 +718,29 @@ ul { list-style: none; }
 .legal__link { border-bottom: 1px solid currentColor; }
 .legal__link:hover { opacity: .6; }
 
+/* ===== CANCEL（解約のお手続き） ===== */
+.cancel__action {
+  margin: 0 0 4px;
+  text-align: center;
+}
+.cancel__action .btn { min-width: 280px; }
+@media (max-width: 600px) {
+  .cancel__action .btn { min-width: 0; width: 100%; }
+}
+
+#page-cancel .join__note {
+  margin: 0 0 48px;
+  text-align: center;
+}
+
+.legal__note {
+  margin-top: 32px;
+  font-size: 12px;
+  line-height: 2;
+  color: #888;
+  letter-spacing: .06em;
+}
+
 .legal__date {
   margin-top: 56px;
   font-size: 11px;
@@ -1107,7 +1130,40 @@ ul { list-style: none; }
 
     <p class="join__note" id="joinNote">申し込みフォームは準備中です。お急ぎの方はInstagramのDMからご連絡ください。</p>
     <p class="join__note">お申し込み前に <a href="#legal" class="legal__link" data-nav>特定商取引法に基づく表記</a> をご確認ください。</p>
+    <p class="join__note">ご契約中の方の <a href="#cancel" class="legal__link" data-nav>解約のお手続きはこちら</a>。</p>
   </section>
+</div>
+
+<!-- ===== PAGE: CANCEL（解約のお手続き） ===== -->
+<div class="vpage" id="page-cancel">
+  <section class="page-hero">
+    <h1 class="section__title">CANCEL<span class="section__jp">解約のお手続き</span></h1>
+  </section>
+
+  <section class="section section--flush">
+    <div class="legal">
+      <p class="legal__lead">月額プラン（ONLINE / OFFLINE）の解約は、下のボタンからご自身でいつでもお手続きいただけます。締め日や事前のご連絡はありません。お支払い済みの期間の末日まではそのままご利用いただけます。</p>
+
+      <p class="cancel__action">
+        <a href="#" class="btn btn--fill" data-stripe-portal>解約・お支払い情報の確認へ</a>
+      </p>
+      <p class="join__note" id="cancelNote">オンラインでの解約手続きは準備中です。お手数ですが、メールまたはInstagramのDMからご連絡ください。</p>
+
+      <dl class="legal__dl">
+        <div><dt>お手続きの流れ</dt><dd>1. 上のボタンを押して、Stripeのお客様ページを開く<br>2. お申し込み時に入力したメールアドレスを入力する<br>3. 届いたメールのリンク（確認コード）でログインする<br>4. ご契約中のプランを選び「プランをキャンセル」を押す</dd></div>
+        <!-- 解約ルールを変更するときは、この2項目と #page-legal の「解約について」「返品・返金について」を必ず揃えてください。
+             また、Stripeダッシュボードのカスタマーポータル設定「キャンセルのタイミング = 請求期間の終了時」とも一致させてください。 -->
+        <div><dt>解約のタイミング</dt><dd>いつでもお手続きいただけます。締め日や事前のご連絡は必要ありません。お手続きをされた時点で次回以降の自動更新が停止し、追加のご請求は発生しません。</dd></div>
+        <div><dt>解約後のご利用</dt><dd>お手続き後すぐに使えなくなることはありません。お支払い済みの期間の末日まではそのままサービスをご利用いただけます。<br>なお、お支払い済みの月額料金の返金・日割りでの返金はいたしかねます。</dd></div>
+        <div><dt>うまくいかないとき</dt><dd>メールアドレスが分からない、ログインメールが届かないなどの場合は、<a class="legal__link" href="mailto:harutomochimaru@icloud.com">harutomochimaru@icloud.com</a> または <a class="legal__link" href="https://www.instagram.com/yhyhyear/" target="_blank" rel="noopener">Instagram DM（@yhyhyear）</a> までご連絡ください。こちらで解約のお手続きをいたします。</dd></div>
+      </dl>
+      <p class="legal__note">※ 物販商品（都度購入）には解約のお手続きはありません。</p>
+    </div>
+  </section>
+
+  <nav class="page-next">
+    <a href="#legal" data-nav><span>NEXT</span>LEGAL →</a>
+  </nav>
 </div>
 
 <!-- ===== PAGE: LEGAL（特定商取引法に基づく表記） ===== -->
@@ -1130,8 +1186,8 @@ ul { list-style: none; }
         <div><dt>お支払い方法</dt><dd>クレジットカード決済（Stripe）</dd></div>
         <div><dt>お支払い時期</dt><dd>月額プラン: 初回はお申し込み時に決済。以降は毎月、初回決済日と同じ日に自動で決済されます。<br>物販商品: ご購入時に決済。</dd></div>
         <div><dt>サービスの提供時期</dt><dd>月額プラン: 決済完了後、順次ご案内（グループへのご招待等）いたします。オフライン指導は決済完了後の最初の開催日からご参加いただけます。<br>物販商品: 決済完了後、7営業日以内に発送または受け渡しいたします。</dd></div>
-        <div><dt>解約について</dt><dd>次回請求日の3日前までにメールまたはInstagramのDMにてご連絡ください。翌月以降の請求は発生しません。ご連絡が次回請求日の3日前を過ぎた場合は、翌月分までのご請求となります。</dd></div>
-        <div><dt>返品・返金について</dt><dd>サービスの性質上、決済済みの月額料金の返金は承っておりません。月の途中で解約された場合も、日割りでの返金はいたしかねます（その月の末日までサービスをご利用いただけます）。<br>物販商品は、商品に破損・不良があった場合に限り、到着後7日以内にご連絡いただければ交換または返金いたします。</dd></div>
+        <div><dt>解約について</dt><dd><a class="legal__link" href="#cancel" data-nav>解約のお手続きページ</a>から、お客様ご自身でいつでも解約いただけます（メールまたはInstagramのDMでのご連絡でも承ります）。お手続きをされた時点で次回以降の自動更新が停止し、追加のご請求は発生しません。お支払い済みの期間の末日まではサービスをご利用いただけます。</dd></div>
+        <div><dt>返品・返金について</dt><dd>サービスの性質上、決済済みの月額料金の返金は承っておりません。期間の途中で解約された場合も、日割りでの返金はいたしかねます（お支払い済みの期間の末日までサービスをご利用いただけます）。<br>物販商品は、商品に破損・不良があった場合に限り、到着後7日以内にご連絡いただければ交換または返金いたします。</dd></div>
         <div><dt>動作環境</dt><dd>インターネットに接続できる端末、およびLINEアプリのご利用が可能な環境</dd></div>
       </dl>
       <p class="legal__date">制定日: 2026年8月18日</p>
@@ -1248,6 +1304,7 @@ ul { list-style: none; }
   <nav class="footer__links" aria-label="規約">
     <a href="#legal" data-nav>特定商取引法に基づく表記</a>
     <a href="#privacy" data-nav>プライバシーポリシー</a>
+    <a href="#cancel" data-nav>解約のお手続き</a>
     <a href="#contact" data-nav>お問い合わせ</a>
   </nav>
   <p class="footer__copy">© 2026 B-CORE. All rights reserved.</p>
@@ -1275,9 +1332,9 @@ const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').match
    ※ この設定はページ最上部（ページ遷移の処理より前）に置いてください。
    ========================================================= */
 const STRIPE_LINKS = {
-  online:  '',   // ONLINE  ¥5,500/月（サブスクリプション）
-  offline: '',   // OFFLINE ¥9,900/月（サブスクリプション）
-  spasub:  ''    // スパサブ ¥300（都度購入）
+  online:  'https://buy.stripe.com/fZufZgbia8HSc358Bq5Vu00',   // ONLINE  ¥5,500/月（サブスクリプション）
+  offline: 'https://buy.stripe.com/28EaEWbia6zKaZ16ti5Vu01',   // OFFLINE ¥9,900/月（サブスクリプション）
+  spasub:  'https://buy.stripe.com/4gM8wOeum4rC9UX9Fu5Vu03'    // スパサブ ¥300（都度購入）
 };
 
 // テストモードで発行したリンク（?test=1 を付けて開いたときだけ使われる）
@@ -1288,6 +1345,28 @@ const STRIPE_TEST_LINKS = {
 };
 
 const STRIPE_PENDING_MSG = '申し込みフォームは準備中です。お手数ですがInstagramのDMからご連絡ください。';
+
+/* =========================================================
+   Stripe カスタマーポータル設定（解約・お支払い情報の変更）
+   ---------------------------------------------------------
+   Stripeダッシュボード → 設定 →「カスタマーポータル」を開き、
+   ・「サブスクリプションのキャンセル」を ON
+   ・ページ下部の「ログインリンクを共有する（Share login link）」を ON
+   で発行される https://billing.stripe.com/p/login/... のURLを、下の '' の中に貼るだけ。
+
+   貼ると、解約ページ（#cancel）のボタンがそのページに繋がります。
+   お客さんは「申し込み時のメールアドレスを入力 → 届いたメールのリンクでログイン →
+   自分でプランをキャンセル」まで完結できるので、こちらの手作業は不要です。
+   空のままなら、ボタンは「メール・DMでご連絡ください」の案内を出すだけです。
+
+   テストモードで発行したリンクは STRIPE_TEST_PORTAL の側に貼ってください
+   （?test=1 付きURL・ローカル表示のときだけ使われます）。
+   ========================================================= */
+const STRIPE_PORTAL      = 'https://billing.stripe.com/p/login/fZufZgbia8HSc358Bq5Vu00';
+// TODO: テストモードのカスタマーポータル ログインリンクを貼る
+const STRIPE_TEST_PORTAL = '';
+
+const STRIPE_PORTAL_PENDING_MSG = 'オンラインでの解約手続きは準備中です。お手数ですが、メールまたはInstagramのDMからご連絡ください。';
 
 // ?test=1 付きURL、またはローカル表示（localhost・ファイル直開き）のときだけテスト用リンクを使う
 const stripeTestMode =
@@ -1334,6 +1413,29 @@ const stripeLinks = stripeTestMode ? STRIPE_TEST_LINKS : STRIPE_LINKS;
   }
 })();
 
+// 解約ボタン（Stripeカスタマーポータルへ）
+const stripePortalUrl = stripeTestMode ? STRIPE_TEST_PORTAL : STRIPE_PORTAL;
+
+(function setupStripePortal() {
+  document.querySelectorAll('[data-stripe-portal]').forEach(el => {
+    if (stripePortalUrl) {
+      el.setAttribute('href', stripePortalUrl);
+      el.setAttribute('target', '_blank');
+      el.setAttribute('rel', 'noopener');
+    } else {
+      el.addEventListener('click', e => {
+        e.preventDefault();
+        alert(STRIPE_PORTAL_PENDING_MSG);
+      });
+    }
+  });
+
+  const cancelNote = document.getElementById('cancelNote');
+  if (cancelNote && stripePortalUrl) {
+    cancelNote.textContent = 'お手続きはStripeの安全なページで行われます。ボタンを押すと新しいタブで開きます。';
+  }
+})();
+
 // ===== Split text into chars =====
 function splitChars(el) {
   if (!el) return;
@@ -1364,7 +1466,7 @@ setTimeout(openUp, 2500); // フォールバック
 
 // ===== Hash router (1ファイル内で複数ページを切替) =====
 const wipe = document.getElementById('wipe');
-const PAGES = ['home', 'about', 'service', 'price', 'store', 'coach', 'join', 'legal', 'privacy', 'contact'];
+const PAGES = ['home', 'about', 'service', 'price', 'store', 'coach', 'join', 'cancel', 'legal', 'privacy', 'contact'];
 
 function currentKey() {
   const k = (location.hash || '#home').slice(1);
