@@ -30,7 +30,14 @@ export default {
       return handleStripeWebhook(request, env);
     }
     if (request.method === 'GET' && url.pathname === '/health') {
-      return jsonResponse({ ok: true });
+      // 合言葉が実行環境から見えているかを true/false で示す（値そのものは出さない）
+      return jsonResponse({
+        ok: true,
+        secrets: {
+          live: Boolean((env.STRIPE_WEBHOOK_SECRET || '').trim()),
+          test: Boolean((env.STRIPE_WEBHOOK_SECRET_TEST || '').trim()),
+        },
+      });
     }
     return new Response('Not found', { status: 404 });
   },
