@@ -34,14 +34,35 @@ export default {
       return jsonResponse({
         ok: true,
         secrets: {
-          live: Boolean((env.STRIPE_WEBHOOK_SECRET || '').trim()),
-          test: Boolean((env.STRIPE_WEBHOOK_SECRET_TEST || '').trim()),
+          live: Boolean(await readSecret(env, 'STRIPE_WEBHOOK_SECRET')),
+          test: Boolean(await readSecret(env, 'STRIPE_WEBHOOK_SECRET_TEST')),
         },
       });
     }
     return new Response('Not found', { status: 404 });
   },
 };
+
+/**
+ * シークレットを読み出す。
+ * Cloudflareでの設定方法によって、届く形が2通りあるため両方に対応する。
+ *   ・「変数とシークレット」で登録 → 文字列としてそのまま入る
+ *   ・「Secrets Store」をバインド   → .get() で取り出すオブジェクトが入る
+ */
+async function readSecret(env, name) {
+  const value = env[name];
+  if (!value) return '';
+  if (typeof value === 'string') return value.trim();
+  if (typeof value.get === 'function') {
+    try {
+      return String(await value.get()).trim();
+    } catch (err) {
+      console.error(`Secrets Storeから ${name} を読めませんでした:`, err?.message || err);
+      return '';
+    }
+  }
+  return '';
+}
 
 /* =========================================================
    Webhook 本体
@@ -50,8 +71,8 @@ export default {
 async function handleStripeWebhook(request, env) {
   // 貼り付け時に前後の空白や改行が混ざることがあるので取り除く
   const secrets = [
-    { mode: 'live', value: (env.STRIPE_WEBHOOK_SECRET || '').trim() },
-    { mode: 'test', value: (env.STRIPE_WEBHOOK_SECRET_TEST || '').trim() },
+    { mode: 'live', value: await readSecret(env, 'STRIPE_WEBHOOK_SECRET') },
+    { mode: 'test', value: await readSecret(env, 'STRIPE_WEBHOOK_SECRET_TEST') },
   ].filter(s => s.value);
 
   if (secrets.length === 0) {
@@ -228,7 +249,7 @@ async function resolveEmail(env, customerId, ctx = {}) {
   if (row?.email) return row.email;
 
   // テストモードのイベントにはテスト用のキーを使う（本番キーでは引けない）
-  const apiKey = ((ctx.isTest ? env.STRIPE_SECRET_KEY_TEST : env.STRIPE_SECRET_KEY) || '').trim();
+  const apiKey = await readSecret(env, ctx.isTest ? 'STRIPE_SECRET_KEY_TEST' : 'STRIPE_SECRET_KEY');
   if (!apiKey) return null;
 
   const res = await fetch(`https://api.stripe.com/v1/customers/${encodeURIComponent(customerId)}`, {
