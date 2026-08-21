@@ -71,7 +71,9 @@ npx wrangler secret put STRIPE_WEBHOOK_SECRET   # whsec_xxxxx を貼る
 npx wrangler secret put STRIPE_SECRET_KEY       # sk_live_xxxxx を貼る（任意・推奨）
 ```
 
-- `STRIPE_WEBHOOK_SECRET` … **必須**。これが無いと通知を受け付けません（偽の通知を見分けられないため）
+- `STRIPE_WEBHOOK_SECRET` … 本番モード用。`whsec_` で始まる文字列
+- `STRIPE_WEBHOOK_SECRET_TEST` … テストモード用。テストモードで登録したWebhookの `whsec_`
+- **どちらか一方でもあれば動きます**（両方入れておけば、本番とテストの両方を同時に受け付けます）
 - `STRIPE_SECRET_KEY` … 任意。通知の順番が前後してメールアドレスが分からないとき、Stripeに直接問い合わせるために使います
 
 > ⚠️ この2つは**絶対に `wrangler.toml` やHTMLに書かないでください**。`wrangler secret put` で登録すると、Cloudflare側に暗号化して保存され、コードには残りません。
@@ -107,6 +109,28 @@ https://dashboard.stripe.com → 「開発者」→「Webhook」→「エンド�
 - `customer.updated` — メールアドレスの変更
 
 登録すると `whsec_...`（署名シークレット）が表示されます。これを手順4で登録してください。
+
+## テストモードで試す
+
+Stripeを**テストモード**に切り替えると、テストカード `4242 4242 4242 4242` を使い、
+実際のお金を動かさずに申し込みから解約まで何度でも試せます。
+
+1. Stripeダッシュボード右上の切り替えで「**テストモード**」にする
+2. 「開発者」→「Webhook」→ **同じURL**でエンドポイントを作る（イベントも同じ5つ）
+3. 発行された `whsec_...` を、Cloudflareの `STRIPE_WEBHOOK_SECRET_TEST` に登録する
+
+本番用の `STRIPE_WEBHOOK_SECRET` はそのままで構いません。
+Workerは署名が合った方の鍵を自動で判別します。
+
+テストモードで届いたデータには `is_test = 1` が付くので、本番の会員と混ざりません。
+
+```sh
+# 本物の会員だけを見る
+SELECT email, plan, status FROM subscriptions WHERE is_test = 0;
+```
+
+> テスト用のデータを消したいとき:
+> `DELETE FROM subscriptions WHERE is_test = 1;` / `DELETE FROM customers WHERE is_test = 1;`
 
 ## 動作確認
 
