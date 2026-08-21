@@ -59,7 +59,7 @@ npm run deploy
 
 公開URL: **https://bcore-hp.haruharumocimoci.workers.dev**
 
-> Workerの名前は、Cloudflare側でリポジトリ名から `bcore-hp` が付いています（`wrangler.toml` の `bcore-members` ではありません）。
+> Workerの名前は `bcore-hp` です（Cloudflare側がリポジトリ名から付けたもの）。`wrangler.toml` の `name` もこれに揃えてあります。食い違うとビルドが失敗します。
 > 公開はCloudflareの「Workers &amp; Pages」から自動で行われるため、通常このコマンドを打つ必要はありません（GitHubにpushすると自動でビルドされます）。
 
 ### 4. Stripeにシークレットを登録する
