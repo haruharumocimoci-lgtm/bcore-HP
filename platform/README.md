@@ -6,7 +6,7 @@
 ```
 お客さんがStripeで申し込む／解約する
         ↓（Stripeが自動で通知）
-  Webhook  https://bcore-members.<サブドメイン>.workers.dev/stripe/webhook
+  Webhook  https://bcore-hp.haruharumocimoci.workers.dev/stripe/webhook
         ↓
   D1データベース（bcore-members）
         ↓
@@ -57,7 +57,10 @@ npm run schema:remote
 npm run deploy
 ```
 
-`https://bcore-members.<あなたのサブドメイン>.workers.dev` が発行されます。このURLを控えてください。
+公開URL: **https://bcore-hp.haruharumocimoci.workers.dev**
+
+> Workerの名前は、Cloudflare側でリポジトリ名から `bcore-hp` が付いています（`wrangler.toml` の `bcore-members` ではありません）。
+> 公開はCloudflareの「Workers &amp; Pages」から自動で行われるため、通常このコマンドを打つ必要はありません（GitHubにpushすると自動でビルドされます）。
 
 ### 4. Stripeにシークレットを登録する
 
@@ -92,7 +95,7 @@ https://dashboard.stripe.com → 「開発者」→「Webhook」→「エンド�
 
 | 項目 | 値 |
 | --- | --- |
-| エンドポイントURL | `https://bcore-members.<サブドメイン>.workers.dev/stripe/webhook` |
+| エンドポイントURL | `https://bcore-hp.haruharumocimoci.workers.dev/stripe/webhook` |
 | イベント | 下の5つ |
 
 送信するイベント:
@@ -108,7 +111,7 @@ https://dashboard.stripe.com → 「開発者」→「Webhook」→「エンド�
 ## 動作確認
 
 ```sh
-curl https://bcore-members.<サブドメイン>.workers.dev/health
+curl https://bcore-hp.haruharumocimoci.workers.dev/health
 # → {"ok":true}
 ```
 
