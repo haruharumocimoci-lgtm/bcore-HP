@@ -1183,7 +1183,7 @@ ul { list-style: none; }
         <div><dt>サービス名</dt><dd>B-CORE（野球塾）</dd></div>
         <div><dt>販売価格</dt><dd>ONLINEプラン: 月額 5,500円（税込）<br>OFFLINEプラン: 月額 9,900円（税込）<br>物販商品: 各商品に表示された価格（税込）</dd></div>
         <div><dt>商品代金以外の<br>必要料金</dt><dd>インターネット接続料金・通信料金（お客様のご負担）<br>オフライン開催地までの交通費<br>物販商品の送料（該当する場合は購入画面に表示）</dd></div>
-        <div><dt>お支払い方法</dt><dd>クレジットカード決済（Stripe）</dd></div>
+        <div><dt>お支払い方法</dt><dd>月額プラン: クレジットカード決済（Stripe）<br>物販商品: <span id="legalStorePay">クレジットカード決済（Stripe）</span></dd></div>
         <div><dt>お支払い時期</dt><dd>月額プラン: 初回はお申し込み時に決済。以降は毎月、初回決済日と同じ日に自動で決済されます。<br>物販商品: ご購入時に決済。</dd></div>
         <div><dt>サービスの提供時期</dt><dd>月額プラン: 決済完了後、順次ご案内（グループへのご招待等）いたします。オフライン指導は決済完了後の最初の開催日からご参加いただけます。<br>物販商品: 決済完了後、7営業日以内に発送または受け渡しいたします。</dd></div>
         <div><dt>解約について</dt><dd><a class="legal__link" href="#cancel" data-nav>解約のお手続きページ</a>から、お客様ご自身でいつでも解約いただけます（メールまたはInstagramのDMでのご連絡でも承ります）。お手続きをされた時点で次回以降の自動更新が停止し、追加のご請求は発生しません。お支払い済みの期間の末日まではサービスをご利用いただけます。</dd></div>
@@ -1231,7 +1231,7 @@ ul { list-style: none; }
         </ul>
 
         <h2>4. 決済情報の取り扱い</h2>
-        <p>お支払いには決済代行サービス「Stripe」を利用しています。クレジットカード番号などの決済情報はStripe社が直接取得・管理しており、当塾がカード番号を受け取ったり保存したりすることは一切ありません。Stripe社における取り扱いについては、同社のプライバシーポリシーをご確認ください。</p>
+        <p>お支払いには決済代行サービス「Stripe」を利用しています。クレジットカード番号やPayPayのアカウント情報などの決済情報は、Stripe社および各決済事業者が直接取得・管理しており、当塾がこれらの情報を受け取ったり保存したりすることは一切ありません。Stripe社における取り扱いについては、同社のプライバシーポリシーをご確認ください。</p>
 
         <h2>5. 第三者への提供</h2>
         <p>当塾は、次の場合を除き、お客様の個人情報を第三者に提供することはありません。</p>
@@ -1344,6 +1344,19 @@ const STRIPE_TEST_LINKS = {
   spasub:  'https://buy.stripe.com/test_8x2eVf9ZP0Y07KnghebQY02'    // テスト用 スパサブ
 };
 
+/* =========================================================
+   PayPay を受け付けるかどうか
+   ---------------------------------------------------------
+   Stripeダッシュボード →「設定」→「決済手段」で PayPay をオンにしたら true にします。
+   true にすると、STOREの案内文と特商法の「お支払い方法」の表記が PayPay 対応に変わります。
+
+   ※ PayPayは「1回きりの支払い」専用です。月額プラン（ONLINE / OFFLINE）は
+   　 サブスクリプションなので、Stripeの決済画面にPayPayは表示されません。
+   　 PayPayが使えるのは STORE の都度購入（スパサブなど）だけです。
+   ※ 支払いリンクのURLは変わりません。この設定は表記を合わせるためだけのものです。
+   ========================================================= */
+const PAYPAY_ENABLED = false;
+
 const STRIPE_PENDING_MSG = '申し込みフォームは準備中です。お手数ですがInstagramのDMからご連絡ください。';
 
 /* =========================================================
@@ -1401,7 +1414,15 @@ const stripeLinks = stripeTestMode ? STRIPE_TEST_LINKS : STRIPE_LINKS;
 
   const storeNote = document.getElementById('storeNote');
   if (storeNote && stripeLinks.spasub) {
-    storeNote.textContent = '※ 商品は今後追加予定です。';
+    storeNote.textContent = PAYPAY_ENABLED
+      ? '※ 商品は今後追加予定です。お支払いはクレジットカード・PayPayに対応しています。'
+      : '※ 商品は今後追加予定です。';
+  }
+
+  // 特商法の「お支払い方法」も、実際に受け付けている手段と揃える
+  const legalStorePay = document.getElementById('legalStorePay');
+  if (legalStorePay && PAYPAY_ENABLED) {
+    legalStorePay.textContent = 'クレジットカード決済・PayPay（いずれもStripe）';
   }
 
   // テスト用リンクで表示していることを画面上でも分かるようにする

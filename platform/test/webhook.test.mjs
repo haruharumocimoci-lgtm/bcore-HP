@@ -142,6 +142,39 @@ console.log('\n== テストモード ==');
   check('どちらとも違う合言葉は拒否する', r.status === 400, JSON.stringify(r));
 }
 
+console.log('\n== 都度購入（PayPay / カード） ==');
+// STOREの都度購入は mode:'payment' で届く。サブスクではないので
+// subscriptions テーブルには何も入らない＝会員判定に影響しないことを確かめる
+{
+  const r = await post(evt('evt_p1', 'checkout.session.completed', {
+    mode: 'payment',
+    payment_method_types: ['paypay'],
+    payment_status: 'paid',
+    customer: 'cus_SPASUB1',
+    customer_details: { email: 'Buyer@Example.com', name: '物販 太郎' },
+  }));
+  check('PayPayでの都度購入を受け付ける', r.status === 200 && r.body.received === true, JSON.stringify(r));
+}
+{
+  // 支払いリンクの設定によっては顧客が作られないことがある。落ちないこと
+  const r = await post(evt('evt_p2', 'checkout.session.completed', {
+    mode: 'payment',
+    payment_method_types: ['paypay'],
+    payment_status: 'paid',
+    customer: null,
+    customer_details: { email: 'guest@example.com' },
+  }));
+  check('顧客なしの都度購入でも200を返す', r.status === 200, JSON.stringify(r));
+}
+{
+  // 決済が後から確定するタイプの通知。未対応イベントとして無視されればよい
+  const r = await post(evt('evt_p3', 'checkout.session.async_payment_succeeded', {
+    mode: 'payment',
+    customer: 'cus_SPASUB1',
+  }));
+  check('後から確定する決済の通知も200を返す', r.status === 200, JSON.stringify(r));
+}
+
 console.log('\n== その他 ==');
 {
   const r = await post(evt('evt_5', 'invoice.payment_succeeded', { id: 'in_1' }));

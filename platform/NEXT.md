@@ -11,6 +11,7 @@
 | 解約ルール（いつでも解約可・期間末日まで利用可・返金なし） | ✅ 反映済み |
 | Webhook受信Worker | ✅ 公開・動作確認済み |
 | 会員データベース（Cloudflare D1 `bcore-members`） | ✅ 記録を確認 |
+| PayPay（STOREの都度購入のみ） | ⬜ Stripeで有効化 → `index.html` の `PAYPAY_ENABLED` を `true` |
 | 講義プラットフォーム | ⬜ 未着手 |
 
 公開URL: https://bcore-hp.haruharumocimoci.workers.dev
@@ -95,6 +96,9 @@ WHERE email = ? AND status IN ('active','trialing') AND is_test = 0;
 ---
 
 ## C. 積み残し（急がないもの）
+
+- PayPayを受け付ける（手順はリポジトリの `README.md`「PayPayを受け付ける」）
+  ※ 都度購入専用。月額プランには使えず、会員判定にも影響しない
 
 - 会社用メールアドレスができたら `harutomochimaru@icloud.com` を一括置換（`index.html` 内4箇所）
 - STORE と COACH の写真（いまはプレースホルダー）
