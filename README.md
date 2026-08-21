@@ -32,6 +32,9 @@
 | `content/hp-content.md` | Notion編集台帳の本文スナップショット（差分確認用） |
 | `scripts/build-artifact.mjs` | 共有用ページ（Artifact）に載せるファイルを生成 |
 | `dist/artifact.html` | 上記スクリプトの生成物（Git管理外） |
+| `platform/` | 会員基盤（Cloudflare Workers）。Stripeの入金を受けて「誰がいま有効な会員か」を記録し、講義プラットフォームからの入室チェックに答える。→ `platform/README.md` |
+
+次にやることは `platform/NEXT.md` にまとめてあります。
 
 ## ローカルで見る
 
@@ -61,7 +64,7 @@ node scripts/build-artifact.mjs
 `index.html` 内に `TODO` コメントで印を付けてあります。決まり次第差し替えてください。
 
 - テストモード用のカスタマーポータル ログインリンク（`index.html` 冒頭の `STRIPE_TEST_PORTAL`）※本番は設定済み。`?test=1` で解約の流れも試したい場合のみ必要
-- 問い合わせメールアドレス（会社用アドレス作成後に差し替え。`index.html` 内の4箇所: 特商法ページ・プライバシーポリシー2箇所・フッター。`harutomochimaru@icloud.com` を一括置換すればOK）
+- 問い合わせメールアドレス（会社用アドレス作成後に差し替え。`index.html` 内の5箇所: 特商法ページ・プライバシーポリシー2箇所・フッター。`harutomochimaru@icloud.com` を一括置換すればOK）
 - STOREとCOACHの写真（現在はプレースホルダー表示）
 
 ## 規約ページ

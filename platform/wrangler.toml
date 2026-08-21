@@ -8,13 +8,18 @@ binding = "DB"
 database_name = "bcore-members"
 database_id = "7c64b837-6471-40ba-987d-916c5e6c75cd"
 
-# 支払いリンクの price_id を書くと、契約がどちらのプランか判別できるようになります。
-# Stripeダッシュボード →「商品カタログ」→ 商品 → 料金 の price_xxxxx をコピーしてください。
-# 空のままでも会員判定は動きます（プラン名が空欄になるだけ）。
+# 契約が ONLINE / OFFLINE のどちらかを判別するための price_id。
+#   ここを空のままにしておくと、Stripeに商品名を問い合わせて自動で判別します
+#   （STRIPE_SECRET_KEY を登録してある場合。商品名に ONLINE / OFFLINE が入っていれば当たります）。
+#   確実に固定したいときだけ、Stripeダッシュボード →「商品カタログ」→ 商品 → 料金 の
+#   price_xxxxx をコピーして書いてください。本番とテストで price_id は別物です。
 [vars]
 PRICE_ONLINE = ""
 PRICE_OFFLINE = ""
+PRICE_ONLINE_TEST = ""
+PRICE_OFFLINE_TEST = ""
 
 # シークレット（wrangler.toml には書かない。コマンドで登録する）
 #   npx wrangler secret put STRIPE_WEBHOOK_SECRET
 #   npx wrangler secret put STRIPE_SECRET_KEY
+#   npx wrangler secret put MEMBER_API_KEY        # 入室チェックAPIの合言葉

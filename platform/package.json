@@ -7,7 +7,9 @@
     "deploy": "wrangler deploy",
     "schema:local": "wrangler d1 execute bcore-members --local --file schema.sql",
     "schema:remote": "wrangler d1 execute bcore-members --remote --file schema.sql",
-    "test": "node test/webhook.test.mjs"
+    "test": "node test/webhook.test.mjs && node test/members.test.mjs",
+    "test:webhook": "node test/webhook.test.mjs",
+    "test:members": "node test/members.test.mjs"
   },
   "devDependencies": {
     "wrangler": "^4"

@@ -6,14 +6,16 @@
  * 講義プラットフォームの入室チェックに使えます。
  *
  * エンドポイント:
- *   POST /stripe/webhook  … Stripeからの通知を受ける（Stripeダッシュボードに登録するURL）
- *   GET  /health          … 動作確認用
+ *   POST /stripe/webhook     … Stripeからの通知を受ける（Stripeダッシュボードに登録するURL）
+ *   POST /api/members/check  … 講義プラットフォームからの入室チェック（APIキーが必要）
+ *   GET  /health             … 動作確認用
  *
  * 必要なシークレット（Cloudflareの「変数とシークレット」で設定）:
  *   STRIPE_WEBHOOK_SECRET      … whsec_xxx（本番モードのWebhook登録時にStripeが発行）
  *   STRIPE_WEBHOOK_SECRET_TEST … whsec_xxx（テストモード用。任意）
  *   STRIPE_SECRET_KEY          … sk_live_xxx（顧客のメール取得用。任意だが推奨）
  *   STRIPE_SECRET_KEY_TEST     … sk_test_xxx（テストモード用。任意）
+ *   MEMBER_API_KEY             … 入室チェックAPIの合言葉（未設定ならAPIは閉じたまま）
  *
  * 本番とテストのどちらの合言葉でも受け付けます（署名が合った方を採用）。
  * テストモードのイベントは livemode:false で届くので、
@@ -29,6 +31,13 @@ export default {
     if (request.method === 'POST' && url.pathname === '/stripe/webhook') {
       return handleStripeWebhook(request, env);
     }
+    if (url.pathname === '/api/members/check') {
+      if (request.method === 'OPTIONS') return corsPreflight();
+      if (request.method === 'POST' || request.method === 'GET') {
+        return handleMemberCheck(request, env, url);
+      }
+      return jsonResponse({ error: 'method not allowed' }, 405);
+    }
     if (request.method === 'GET' && url.pathname === '/health') {
       // 合言葉が実行環境から見えているかを true/false で示す（値そのものは出さない）
       return jsonResponse({
@@ -36,6 +45,7 @@ export default {
         secrets: {
           live: Boolean(await readSecret(env, 'STRIPE_WEBHOOK_SECRET')),
           test: Boolean(await readSecret(env, 'STRIPE_WEBHOOK_SECRET_TEST')),
+          memberApi: Boolean(await readSecret(env, 'MEMBER_API_KEY')),
         },
       });
     }
@@ -211,6 +221,7 @@ async function upsertSubscription(event, env, ctx = {}) {
   const status = event.type === 'customer.subscription.deleted' ? 'canceled' : sub.status;
 
   const email = await resolveEmail(env, customerId, ctx);
+  const plan = await resolvePlan(priceId, env, ctx);
   const now = nowSec();
 
   await env.DB.prepare(`
@@ -229,16 +240,59 @@ async function upsertSubscription(event, env, ctx = {}) {
       is_test              = excluded.is_test,
       updated_at           = excluded.updated_at
   `).bind(
-    sub.id, customerId, email, planFromPrice(priceId, env), priceId, status, periodEnd,
+    sub.id, customerId, email, plan, priceId, status, periodEnd,
     sub.cancel_at_period_end ? 1 : 0, ctx.isTest ? 1 : 0, now, now
   ).run();
 }
 
-// 支払いリンクのprice_idからプラン名を決める（環境変数で対応付け）
-function planFromPrice(priceId, env) {
+/**
+ * 契約が ONLINE / OFFLINE のどちらのプランかを判別する。
+ *   1. wrangler.toml の [vars] に price_id を書いてあれば、それと照合する（いちばん確実）
+ *   2. 書いていなければ、Stripeに商品名を問い合わせて名前から判別する
+ * どちらもできなければ null（プラン欄が空になるだけで、会員判定そのものは動く）。
+ */
+async function resolvePlan(priceId, env, ctx = {}) {
   if (!priceId) return null;
-  if (env.PRICE_ONLINE && priceId === env.PRICE_ONLINE) return 'online';
-  if (env.PRICE_OFFLINE && priceId === env.PRICE_OFFLINE) return 'offline';
+
+  const configured = matchConfiguredPrice(priceId, env, ctx);
+  if (configured) return configured;
+
+  // テストモードの契約にはテスト用のキーを使う（本番キーでは引けない）
+  const apiKey = await readSecret(env, ctx.isTest ? 'STRIPE_SECRET_KEY_TEST' : 'STRIPE_SECRET_KEY');
+  if (!apiKey) return null;
+
+  // プラン名は「あれば嬉しい」情報なので、取得に失敗しても契約の記録は止めない
+  try {
+    const res = await fetch(
+      `https://api.stripe.com/v1/prices/${encodeURIComponent(priceId)}?expand[]=product`,
+      { headers: { Authorization: `Bearer ${apiKey}` } }
+    );
+    if (!res.ok) {
+      console.error(`Stripeから料金を取得できませんでした ${priceId}: ${res.status}`);
+      return null;
+    }
+    const price = await res.json();
+    return planFromLabel(`${price.nickname || ''} ${price.lookup_key || ''} ${price.product?.name || ''}`);
+  } catch (err) {
+    console.error(`Stripeへの料金の問い合わせに失敗 ${priceId}:`, err?.message || err);
+    return null;
+  }
+}
+
+// wrangler.toml に書いた price_id と照合する。本番とテストで price_id は別物
+function matchConfiguredPrice(priceId, env, ctx = {}) {
+  const online = (ctx.isTest ? env.PRICE_ONLINE_TEST : env.PRICE_ONLINE) || '';
+  const offline = (ctx.isTest ? env.PRICE_OFFLINE_TEST : env.PRICE_OFFLINE) || '';
+  if (online && priceId === online) return 'online';
+  if (offline && priceId === offline) return 'offline';
+  return null;
+}
+
+// 商品名（「B-CORE ONLINE」など）からプランを読み取る
+function planFromLabel(text) {
+  const label = String(text).toLowerCase();
+  if (label.includes('offline') || label.includes('オフライン')) return 'offline';
+  if (label.includes('online') || label.includes('オンライン')) return 'online';
   return null;
 }
 
@@ -263,6 +317,99 @@ async function resolveEmail(env, customerId, ctx = {}) {
   const email = normalizeEmail(customer.email);
   if (email) await upsertCustomer(env, customerId, email, customer.name, ctx);
   return email;
+}
+
+/* =========================================================
+   入室チェックAPI（講義プラットフォームから呼ぶ）
+   ---------------------------------------------------------
+   「このメールアドレスの人は、いま有効な会員か？」に答えます。
+   会員かどうかを他人に勝手に調べられないよう、必ずAPIキーで保護します。
+
+     POST https://bcore-hp.haruharumocimoci.workers.dev/api/members/check
+     Authorization: Bearer <MEMBER_API_KEY>
+     {"email": "parent@example.com"}
+
+     → {"member": true, "plan": "online", "status": "active",
+        "current_period_end": 1790000000, "cancel_at_period_end": false}
+     → {"member": false}
+
+   解約しても期間の末日までは status が active のままなので、
+   HPに書いた「お支払い済みの期間の末日までご利用いただけます」と自動で一致します。
+   ========================================================= */
+
+// 会員とみなす契約の状態。past_due（支払い失敗）は含めない
+const ACTIVE_STATUSES = ['active', 'trialing'];
+
+async function handleMemberCheck(request, env, url) {
+  const apiKey = await readSecret(env, 'MEMBER_API_KEY');
+  if (!apiKey) {
+    // 合言葉を決めるまでAPIは閉じたままにする（誤って誰でも引ける状態にしない）
+    console.error('MEMBER_API_KEY が未設定のため入室チェックAPIは使えません');
+    return jsonResponse({ error: 'not configured' }, 503);
+  }
+
+  if (!timingSafeEqual(presentedApiKey(request), apiKey)) {
+    return jsonResponse({ error: 'unauthorized' }, 401);
+  }
+
+  // POSTならJSONの本文、GETなら ?email= から受け取る
+  let input = {};
+  if (request.method === 'POST') {
+    try {
+      input = await request.json();
+    } catch {
+      return jsonResponse({ error: 'invalid json' }, 400);
+    }
+    if (!input || typeof input !== 'object') return jsonResponse({ error: 'invalid json' }, 400);
+  } else {
+    input = { email: url.searchParams.get('email'), test: url.searchParams.get('test') };
+  }
+
+  const email = normalizeEmail(input.email);
+  if (!email) return jsonResponse({ error: 'email is required' }, 400);
+
+  // テストモードのデータを引きたいときだけ test:true を付ける（既定は本番の会員のみ）
+  const isTest = input.test === true || input.test === 1 || input.test === '1' || input.test === 'true';
+
+  const row = await env.DB.prepare(`
+    SELECT plan, status, current_period_end, cancel_at_period_end
+    FROM subscriptions
+    WHERE email = ? AND is_test = ? AND status IN (${ACTIVE_STATUSES.map(() => '?').join(', ')})
+    ORDER BY COALESCE(current_period_end, 0) DESC
+    LIMIT 1
+  `).bind(email, isTest ? 1 : 0, ...ACTIVE_STATUSES).first();
+
+  if (!row) return jsonResponse({ member: false });
+
+  return jsonResponse({
+    member: true,
+    plan: row.plan || null,
+    status: row.status,
+    current_period_end: row.current_period_end ?? null,
+    cancel_at_period_end: Boolean(row.cancel_at_period_end),
+  });
+}
+
+// 合言葉は Authorization: Bearer xxx か x-api-key ヘッダーで受け取る
+// （URLに書くとアクセスログに残ってしまうため、クエリ文字列では受け取らない）
+function presentedApiKey(request) {
+  const auth = request.headers.get('authorization') || '';
+  const bearer = auth.match(/^Bearer\s+(.+)$/i);
+  if (bearer) return bearer[1].trim();
+  return (request.headers.get('x-api-key') || '').trim();
+}
+
+function corsPreflight() {
+  return new Response(null, { status: 204, headers: corsHeaders() });
+}
+
+function corsHeaders() {
+  return {
+    'access-control-allow-origin': '*',
+    'access-control-allow-methods': 'GET, POST, OPTIONS',
+    'access-control-allow-headers': 'content-type, authorization, x-api-key',
+    'access-control-max-age': '86400',
+  };
 }
 
 /* =========================================================
@@ -335,6 +482,6 @@ function normalizeEmail(email) {
 function jsonResponse(body, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { 'content-type': 'application/json; charset=utf-8' },
+    headers: { 'content-type': 'application/json; charset=utf-8', ...corsHeaders() },
   });
 }
