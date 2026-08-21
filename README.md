@@ -61,6 +61,8 @@ node scripts/build-artifact.mjs
 `index.html` 内に `TODO` コメントで印を付けてあります。決まり次第差し替えてください。
 
 - Stripeの支払いリンクURL（`index.html` 冒頭の `STRIPE_LINKS` / テスト用は `STRIPE_TEST_LINKS`）→ 下記「Stripeで決済を受け取る」参照
+- Stripeのカスタマーポータル ログインリンク（`index.html` 冒頭の `STRIPE_PORTAL` / テスト用は `STRIPE_TEST_PORTAL`）→ 下記「解約ボタン（お客さんが自分で解約できるようにする）」参照
+- 解約ルールそのもの（期限・返金の扱い）→ 決まり次第、`#page-cancel` と `#page-legal` の両方を揃えて更新
 - 問い合わせメールアドレス（会社用アドレス作成後に差し替え。`index.html` 内の4箇所: 特商法ページ・プライバシーポリシー2箇所・フッター。`harutomochimaru@icloud.com` を一括置換すればOK）
 - STOREとCOACHの写真（現在はプレースホルダー表示）
 
@@ -72,6 +74,7 @@ Stripeの審査と継続課金のため、次の2ページを `index.html` 内�
 | --- | --- |
 | `https://b-core.space/#legal` | 特定商取引法に基づく表記 |
 | `https://b-core.space/#privacy` | プライバシーポリシー |
+| `https://b-core.space/#cancel` | 解約のお手続き（解約ボタン） |
 
 事業者情報・解約/返金ルールを変更する場合は、`#page-legal` の `<dl class="legal__dl">` を直接編集してください。
 
@@ -148,3 +151,61 @@ const STRIPE_TEST_LINKS = {
 - テスト用の `STRIPE_TEST_LINKS` は残しておいて問題ありません（`?test=1` のときしか使われません）
 
 > 手数料の目安: 国内カード決済 3.6%（例: 5,500円 → 約199円）。サーバー代・月額固定費はかかりません。
+
+## 解約ボタン（お客さんが自分で解約できるようにする）
+
+`https://b-core.space/#cancel` に「解約のお手続き」ページがあります（フッター・JOINページ・特商法ページからリンク）。
+ボタンの飛び先は **Stripeのカスタマーポータル**です。お客さんは
+
+1. ボタンを押す → Stripeのお客様ページが開く
+2. 申し込み時のメールアドレスを入力
+3. 届いたメールのリンク（確認コード）でログイン
+4. 「プランをキャンセル」を押す
+
+の4ステップで自分で解約できます。**こちら側の手作業は不要**です（解約されるとStripeからメールが届きます）。
+
+### 1. Stripeでカスタマーポータルを有効にする
+
+https://dashboard.stripe.com → 「設定」→「請求」→「カスタマーポータル」
+
+| 項目 | 設定 |
+| --- | --- |
+| サブスクリプションのキャンセル | **オン**（これが解約ボタンの本体） |
+| キャンセルのタイミング | 「請求期間の終了時」を推奨（払った分は末日まで使える） |
+| プランの変更 | 必要なら ON（ONLINE ⇄ OFFLINE の乗り換えができます） |
+| お支払い方法の更新 | オン（カード期限切れの自己解決用） |
+| 請求書の履歴 | オン |
+
+ページ下部の **「ログインリンクを共有する」をオン**にすると、`https://billing.stripe.com/p/login/...` が発行されます。これをコピーします。
+
+### 2. サイトに貼る
+
+`index.html` の `<script>` 冒頭、`STRIPE_LINKS` のすぐ下です。
+
+```js
+const STRIPE_PORTAL      = 'https://billing.stripe.com/p/login/xxxxxxxx';       // 本番
+const STRIPE_TEST_PORTAL = 'https://billing.stripe.com/p/login/test_xxxxxxxx';  // テスト
+```
+
+支払いリンクと同じルールで切り替わります。
+
+| 開くURL | 使われるリンク |
+| --- | --- |
+| https://b-core.space/#cancel （通常） | `STRIPE_PORTAL`（本番） |
+| https://b-core.space/#cancel?test=1 | `STRIPE_TEST_PORTAL`（テスト） |
+| ローカル表示 | `STRIPE_TEST_PORTAL`（テスト） |
+
+空のままの場合、ボタンを押すと「メールまたはInstagramのDMからご連絡ください」という案内が出るだけで、誤って壊れたページに飛ぶことはありません。
+
+### 3. 解約ルールの文言を変えるとき
+
+`index.html` の中の **2箇所を必ず揃えて**ください（食い違うと特商法上の表示として問題になります）。
+
+- `#page-cancel` の「解約の期限」「解約後のご利用」
+- `#page-legal` の「解約について」「返品・返金について」
+
+`#page-cancel` 内に `TODO:` コメントで目印を付けてあります。
+
+> 注意: Stripeの「キャンセルのタイミング」設定と、サイトに書いた解約ルールは一致させてください。
+> 例）サイトに「末日まで利用できます」と書くなら、Stripe側は「請求期間の終了時にキャンセル」にする。
+> Stripe側を「即時キャンセル」にすると、払った分が残っていてもその場で使えなくなります。
