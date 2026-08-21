@@ -44,9 +44,18 @@ async function handleStripeWebhook(request, env) {
   const payload = await request.text();
   const signature = request.headers.get('stripe-signature') || '';
 
-  const verified = await verifyStripeSignature(payload, signature, env.STRIPE_WEBHOOK_SECRET);
+  // 貼り付け時に前後の空白や改行が混ざることがあるので取り除く
+  const secret = env.STRIPE_WEBHOOK_SECRET.trim();
+
+  const verified = await verifyStripeSignature(payload, signature, secret);
   if (!verified) {
     // 署名が合わない = Stripe以外からの偽の通知。処理せず拒否する
+    // 原因の切り分け用。鍵の値は一切出さず、形が正しいかだけ記録する
+    console.error(
+      `署名が一致しません。secretの長さ=${secret.length} ` +
+      `whsec_で始まる=${secret.startsWith('whsec_')} ` +
+      `署名ヘッダー=${signature ? 'あり' : 'なし'}`
+    );
     return jsonResponse({ error: 'invalid signature' }, 400);
   }
 
