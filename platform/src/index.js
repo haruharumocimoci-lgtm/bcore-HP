@@ -50,9 +50,10 @@ async function handleStripeWebhook(request, env) {
   const verified = await verifyStripeSignature(payload, signature, secret);
   if (!verified) {
     // 署名が合わない = Stripe以外からの偽の通知。処理せず拒否する
-    // 原因の切り分けができるよう、鍵の形だけログに出す（値そのものは出さない）
+    // 原因の切り分け用。鍵の値は一切出さず、形が正しいかだけ記録する
     console.error(
-      `署名が一致しません。secret先頭=${secret.slice(0, 8)} 長さ=${secret.length} ` +
+      `署名が一致しません。secretの長さ=${secret.length} ` +
+      `whsec_で始まる=${secret.startsWith('whsec_')} ` +
       `署名ヘッダー=${signature ? 'あり' : 'なし'}`
     );
     return jsonResponse({ error: 'invalid signature' }, 400);
