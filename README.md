@@ -2,6 +2,9 @@
 
 野球塾 B-CORE の公式ホームページ。ビルド不要の静的サイトで、`index.html` 1枚に完結しています（外部CDN・依存パッケージなし）。
 
+> **会員限定 動画プラットフォーム（B-CORE FORM / bcoreform.com）は [`app/`](app/README.md) にあります。**
+> Stripe Webhook受信の会員基盤（既存）は [`platform/`](platform/README.md) です。
+
 ## 公開リンク
 
 - **一般公開URL（独自ドメイン）: https://b-core.space/**

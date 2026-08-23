@@ -1,0 +1,35 @@
+// B-CORE FORM（会員限定 動画プラットフォーム）のWorker設定
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "bcoreform",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2025-03-25",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  // 独自ドメイン。bcoreform.com のゾーンが同じCloudflareアカウントにあれば
+  // デプロイ時に自動で接続される。
+  "routes": [
+    { "pattern": "bcoreform.com", "custom_domain": true },
+    { "pattern": "www.bcoreform.com", "custom_domain": true }
+  ],
+  "workers_dev": true,
+  // 既存の会員データベース（Stripe Webhook Worker が更新している D1）。
+  // Supabase側にデータが無い場合の入会判定フォールバックとして参照する。
+  "d1_databases": [
+    {
+      "binding": "MEMBERS_DB",
+      "database_name": "bcore-members",
+      "database_id": "7c64b837-6471-40ba-987d-916c5e6c75cd"
+    }
+  ],
+  "vars": {
+    // 公開して問題ない設定値。シークレットは必ず `wrangler secret put` か
+    // Cloudflareダッシュボードの「変数とシークレット」で設定する。
+    "SITE_NAME": "B-CORE FORM",
+    "MARKETING_SITE_URL": "https://b-core.space"
+  },
+  "observability": { "enabled": true }
+}

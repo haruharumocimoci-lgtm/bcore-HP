@@ -11,7 +11,7 @@
 | 解約ルール（いつでも解約可・期間末日まで利用可・返金なし） | ✅ 反映済み |
 | Webhook受信Worker | ✅ 公開・動作確認済み |
 | 会員データベース（Cloudflare D1 `bcore-members`） | ✅ 記録を確認 |
-| 講義プラットフォーム | ⬜ 未着手 |
+| 講義プラットフォーム | 🚧 実装完了・公開設定待ち（`app/` フォルダ。手順は `app/README.md`） |
 
 公開URL: https://bcore-hp.haruharumocimoci.workers.dev
 - `/health` … 合言葉が届いているかを確認できる
