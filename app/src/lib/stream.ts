@@ -23,6 +23,28 @@ export function streamCustomerCode(): string {
   return env("STREAM_CUSTOMER_CODE");
 }
 
+/**
+ * 再生に使うホスト名を組み立てる。
+ * STREAM_CUSTOMER_CODE には、Cloudflareダッシュボードの表示に合わせて
+ * どの書き方をしてもよい（どれも同じホストになる）:
+ *   ・"7cf4k7owbwzz9"                              （コードだけ）
+ *   ・"customer-7cf4k7owbwzz9"                     （customer- 付き）
+ *   ・"7cf4k7owbwzz9.cloudflarestream.com"         （カスタマーサブドメイン）
+ *   ・"https://customer-7cf4k7owbwzz9.cloudflarestream.com"
+ */
+export function streamHost(): string {
+  let value = streamCustomerCode()
+    .replace(/^https?:\/\//, "")
+    .replace(/\/+$/, "");
+  if (!value) return "";
+
+  // すでに完全なホスト名ならそのまま使う
+  if (value.endsWith(".cloudflarestream.com")) return value;
+
+  if (!value.startsWith("customer-")) value = `customer-${value}`;
+  return `${value}.cloudflarestream.com`;
+}
+
 export function streamConfigured(): boolean {
   return Boolean(env("STREAM_SIGNING_KEY_ID") && env("STREAM_SIGNING_KEY_JWK") && streamCustomerCode());
 }
@@ -61,7 +83,7 @@ export async function createPlaybackToken(
 
 /** 再生用のiframe埋め込みURL（トークン込み） */
 export function playbackIframeUrl(token: string): string {
-  return `https://customer-${streamCustomerCode()}.cloudflarestream.com/${token}/iframe`;
+  return `https://${streamHost()}/${token}/iframe`;
 }
 
 /**
