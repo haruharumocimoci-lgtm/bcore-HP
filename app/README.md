@@ -69,17 +69,27 @@
 
 ## 2. Cloudflare Stream（動画配信）
 
-1. Cloudflareダッシュボード → Stream を有効化（$5/月〜。視聴時間・保存分数で課金）
-2. アカウントID（ダッシュボード右下やURLに表示）→ `CLOUDFLARE_ACCOUNT_ID`
-3. マイプロフィール → APIトークン → 「トークンを作成」→ 権限: **Stream:編集** → `STREAM_API_TOKEN`（**秘密**）
-4. 署名キーを作る（PCのターミナルで1回だけ実行）:
-   ```sh
-   curl -X POST "https://api.cloudflare.com/client/v4/accounts/<アカウントID>/stream/keys" \
-        -H "Authorization: Bearer <STREAM_API_TOKEN>"
-   ```
-   返ってきたJSONの `result.id` → `STREAM_SIGNING_KEY_ID`、`result.jwk` → `STREAM_SIGNING_KEY_JWK`（**秘密**）
-5. Stream → 任意の動画 → 埋め込みコードの `customer-xxxx.cloudflarestream.com` の `xxxx` → `STREAM_CUSTOMER_CODE`
-   （動画がまだ無ければ、後で最初のアップロード後に設定してよい）
+アカウントID・カスタマーサブドメイン・署名キーは**発行済み**です。
+
+| 変数 | 状態 |
+| --- | --- |
+| `CLOUDFLARE_ACCOUNT_ID` | ✅ `.env.example` に記録済み（**必ず小文字**。大文字混じりだとAPIが404を返す） |
+| `STREAM_CUSTOMER_CODE` | ✅ `.env.example` に記録済み |
+| `STREAM_SIGNING_KEY_ID` | ✅ 発行済み（`08692124b741425543545cdf7919d455`） |
+| `STREAM_API_TOKEN` | 🔑 秘密。Cloudflareの「変数とシークレット」に設定する |
+| `STREAM_SIGNING_KEY_JWK` | 🔑 秘密。同上 |
+
+秘密の2つはリポジトリに置いていません。紛失した場合は作り直せます。
+
+- APIトークン: マイプロフィール → APIトークン → 「トークンを作成」→ 権限 **Stream:編集**
+- 署名キー（作り直すと古いキーで署名した再生URLは無効になります）:
+  ```sh
+  curl -X POST "https://api.cloudflare.com/client/v4/accounts/<アカウントID>/stream/keys" \
+       -H "Authorization: Bearer <STREAM_API_TOKEN>"
+  ```
+  返ってきた `result.id` → `STREAM_SIGNING_KEY_ID`、`result.jwk` → `STREAM_SIGNING_KEY_JWK`
+
+なお Stream の利用には課金の有効化が必要です（$5/月〜。保存分数と視聴時間で課金）。
 
 ## 3. Notion（講座・動画の台帳）
 
