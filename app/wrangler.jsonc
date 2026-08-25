@@ -16,20 +16,37 @@
     { "pattern": "www.bcoreform.com", "custom_domain": true }
   ],
   "workers_dev": true,
-  // 既存の会員データベース（Stripe Webhook Worker が更新している D1）。
-  // Supabase側にデータが無い場合の入会判定フォールバックとして参照する。
-  "d1_databases": [
-    {
-      "binding": "MEMBERS_DB",
-      "database_name": "bcore-members",
-      "database_id": "7c64b837-6471-40ba-987d-916c5e6c75cd"
-    }
-  ],
+  // 会員データは Supabase の subscriptions を正とする。
+  //
+  // 旧・会員基盤（Worker `bcore-hp` と D1 `bcore-members`）は bcoreform.com とは
+  // 別のCloudflareアカウントにあるため、ここからはバインドできない。
+  // 同じアカウントに移す場合は、下記のように d1_databases を足せば
+  // Supabase に契約が無いときの照合先として自動で使われる（コードは対応済み）。
+  //
+  // "d1_databases": [
+  //   { "binding": "MEMBERS_DB", "database_name": "bcore-members", "database_id": "<D1のID>" }
+  // ],
+  // 公開して問題ない設定値のみ。シークレット（APIトークン・署名キー・
+  // service_roleキーなど）は必ず `wrangler secret put` で登録し、ここには書かない。
   "vars": {
-    // 公開して問題ない設定値。シークレットは必ず `wrangler secret put` か
-    // Cloudflareダッシュボードの「変数とシークレット」で設定する。
     "SITE_NAME": "B-CORE FORM",
-    "MARKETING_SITE_URL": "https://b-core.space"
+    "MARKETING_SITE_URL": "https://b-core.space",
+
+    // Supabase（anonキーはブラウザに配られる前提の公開値）
+    "NEXT_PUBLIC_SUPABASE_URL": "https://rllpjenzdxhpwrtispye.supabase.co",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJsbHBqZW56ZHhocHdydGlzcHllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIwMjA5OTAsImV4cCI6MjA5NzU5Njk5MH0.DY66vrhxHrb6FWU5WHfRt7GgAIqyxQ6dPvjRjdPy87s",
+
+    // Cloudflare Stream（アカウントIDは必ず小文字。署名キーIDは公開値）
+    "CLOUDFLARE_ACCOUNT_ID": "0361ce13cde5c4170b9639ed5e745c3e",
+    "STREAM_CUSTOMER_CODE": "7cf4k7owbwzz9.cloudflarestream.com",
+    "STREAM_SIGNING_KEY_ID": "08692124b741425543545cdf7919d455",
+
+    // Notion台帳
+    "NOTION_COURSES_DB_ID": "ffb4fbb899b4469480bb9d9452e67bab",
+    "NOTION_VIDEOS_DB_ID": "e8c46689417e45b2ae4e882aa1ea0014",
+
+    // 管理画面に入れるメールアドレス（カンマ区切り）
+    "ADMIN_EMAILS": "yuta17t@gmail.com"
   },
   "observability": { "enabled": true }
 }
