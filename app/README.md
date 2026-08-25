@@ -79,17 +79,28 @@
 | `STREAM_API_TOKEN` | 🔑 秘密。Cloudflareの「変数とシークレット」に設定する |
 | `STREAM_SIGNING_KEY_JWK` | 🔑 秘密。同上 |
 
-秘密の2つはリポジトリに置いていません。紛失した場合は作り直せます。
+**このセットアップですることは、秘密の2つ（🔑印）を Cloudflare の「変数とシークレット」に貼るだけ**です。
+値の発行作業はすべて完了しています。
+
+> 署名キーとは: 動画の「入場券を発行するためのハンコ」です。視聴のたびにサーバーが
+> 2時間だけ有効な入場券を作り、それが付いたURLでしか再生できません。
+> URLを他人に送っても再生できないので、又貸しやダウンロードを防げます。
+
+なお Stream の利用には課金の有効化が必要です（$5/月〜。保存分数と視聴時間で課金）。
+
+<details>
+<summary>万一なくしたときの作り直し手順（普段は不要）</summary>
 
 - APIトークン: マイプロフィール → APIトークン → 「トークンを作成」→ 権限 **Stream:編集**
-- 署名キー（作り直すと古いキーで署名した再生URLは無効になります）:
+- 署名キー（作り直すと、古いキーで発行済みの再生URLは無効になります）:
   ```sh
   curl -X POST "https://api.cloudflare.com/client/v4/accounts/<アカウントID>/stream/keys" \
        -H "Authorization: Bearer <STREAM_API_TOKEN>"
   ```
-  返ってきた `result.id` → `STREAM_SIGNING_KEY_ID`、`result.jwk` → `STREAM_SIGNING_KEY_JWK`
+  返ってきたJSONの `result.id` を `STREAM_SIGNING_KEY_ID` に、
+  `result.jwk` を `STREAM_SIGNING_KEY_JWK` に設定します。
 
-なお Stream の利用には課金の有効化が必要です（$5/月〜。保存分数と視聴時間で課金）。
+</details>
 
 ## 3. Notion（講座・動画の台帳）
 
