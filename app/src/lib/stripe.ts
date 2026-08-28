@@ -145,14 +145,21 @@ async function upsertCustomer(
   if (error) throw new Error(`stripe_customersの保存に失敗: ${error.message}`);
 }
 
-// 顧客のメールアドレスが後から判明したとき、契約テーブル側にも反映する
+// 顧客のメールアドレスが後から判明したとき、契約テーブル側にも反映する。
+//
+// Stripeは customer.subscription.created と checkout.session.completed を
+// ほぼ同時に送ってくる。前者が先に処理されるとメールがまだ分からないため
+// email が NULL のまま契約が作られる。そのあと後者がこの関数を呼んで埋める。
+//
+// 絞り込み条件は付けないこと。「メールが違う行だけ更新する」つもりで
+// `.neq("email", email)` を付けると、SQL上 `NULL <> '値'` は TRUE ではなく
+// NULL に評価されるため、**まさに埋めたい NULL の行が除外されてしまう**。
 async function backfillEmail(customerId: string, email: string): Promise<void> {
   const admin = createSupabaseAdminClient();
   const { error } = await admin
     .from("subscriptions")
     .update({ email, updated_at: new Date().toISOString() })
-    .eq("customer_id", customerId)
-    .neq("email", email);
+    .eq("customer_id", customerId);
   if (error) throw new Error(`メールの反映に失敗: ${error.message}`);
 }
 
