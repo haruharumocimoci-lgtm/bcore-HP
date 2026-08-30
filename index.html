@@ -8,6 +8,10 @@
 <meta property="og:title" content="B-CORE | 野球で終わらない学びを">
 <meta property="og:description" content="朝から動く対話型の野球塾。技術の先にある「考え方」と「人間性」を鍛えます。">
 <meta property="og:type" content="website">
+<meta property="og:url" content="https://b-core.space/">
+<meta property="og:image" content="https://b-core.space/images/ogp.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%BE%3C/text%3E%3C/svg%3E">
 <style>
 /* ===== B-CORE — Stussy-inspired minimal（白黒単一テーマの意匠） ===== */
@@ -568,15 +572,6 @@ ul { list-style: none; }
   object-fit: cover;
 }
 
-/* 写真の下側に写り込んでいるものを見せたくないときに付ける。
-   元画像の上から --keep の割合だけを枠いっぱいに表示し、下は切り落とす。
-   切る量を変えたいときは --keep の数字だけ変える（小さくするほど寄る）。 */
-.ph__img--top {
-  --keep: .785;
-  bottom: auto;
-  height: calc(100% / var(--keep));
-}
-
 /* ===== COACH ===== */
 .coach__grid {
   display: grid;
@@ -1115,11 +1110,11 @@ ul { list-style: none; }
     <div class="coach__grid">
       <article class="coach__card">
         <div class="ph ph--portrait" data-ph="PHOTO">
-          <img class="ph__img ph__img--top" src="images/coach-takeuchi.jpg" alt="竹内 悠悟 コーチ" loading="lazy" onerror="this.remove()">
+          <img class="ph__img" src="images/coach-takeuchi.jpg" alt="竹内 悠悟 コーチ" loading="lazy" onerror="this.remove()">
         </div>
         <h3>竹内 悠悟<span class="coach__en">YUGO TAKEUCHI</span></h3>
         <dl>
-          <dt>生まれ</dt><dd>2005年</dd>
+          <dt>生まれ</dt><dd>2005年6月7日</dd>
           <dt>出身チーム</dt><dd>横浜西シニア → 磐田東高校</dd>
           <dt>ポジション</dt><dd>外野手・投手</dd>
           <dt>好きな言葉</dt><dd>踊る阿呆も見る阿呆も同じ阿呆なら踊らにゃ損損</dd>
@@ -1215,7 +1210,7 @@ ul { list-style: none; }
         <div><dt>販売事業者</dt><dd>持丸 春聡</dd></div>
         <div><dt>運営統括責任者</dt><dd>持丸 春聡</dd></div>
         <div><dt>所在地</dt><dd>ご請求をいただいた場合に、遅滞なく開示いたします。</dd></div>
-        <div><dt>電話番号</dt><dd>080-7897-0716<br><span style="color:#888">受付時間: 平日 10:00〜18:00（土日祝を除く）</span></dd></div>
+        <div><dt>電話番号</dt><dd>ご請求をいただいた場合に、遅滞なく開示いたします。お問い合わせは下記メールアドレスまたは<a class="legal__link" href="#contact" data-nav>お問い合わせページ</a>よりお願いいたします。</dd></div>
         <div><dt>メールアドレス</dt><dd><a class="legal__link" href="mailto:info@b-core.space">info@b-core.space</a></dd></div>
         <div><dt>サービス名</dt><dd>B-CORE（野球塾）</dd></div>
         <div><dt>販売価格</dt><dd>ONLINEプラン: 月額 5,500円（税込）<br>OFFLINEプラン: 月額 9,900円（税込）<br>物販商品: 各商品に表示された価格（税込）</dd></div>
@@ -1324,7 +1319,6 @@ ul { list-style: none; }
       <dl class="legal__dl">
         <div><dt>メール</dt><dd><a class="legal__link" href="mailto:info@b-core.space">info@b-core.space</a></dd></div>
         <div><dt>Instagram DM</dt><dd><a class="legal__link" href="https://www.instagram.com/yhyhyear/" target="_blank" rel="noopener">@yhyhyear</a><br><span style="color:#888">DMでのご連絡が最もスムーズです。</span></dd></div>
-        <div><dt>電話番号</dt><dd>080-7897-0716<br><span style="color:#888">受付時間: 平日 10:00〜18:00（土日祝を除く）</span></dd></div>
       </dl>
     </div>
   </section>

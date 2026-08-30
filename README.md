@@ -202,7 +202,9 @@ const STRIPE_TEST_PORTAL = 'https://billing.stripe.com/p/login/test_xxxxxxxx';  
 | 開くURL | 使われるリンク |
 | --- | --- |
 | https://b-core.space/#cancel （通常） | `STRIPE_PORTAL`（本番） |
-| https://b-core.space/#cancel?test=1 | `STRIPE_TEST_PORTAL`（テスト） |
+| https://b-core.space/?test=1#cancel | `STRIPE_TEST_PORTAL`（テスト） |
+
+> 注意: `?test=1` は必ず `#cancel` より**前**に付けてください（`#cancel?test=1` の順だとテストモードになりません）。
 | ローカル表示 | `STRIPE_TEST_PORTAL`（テスト） |
 
 空のままの場合、ボタンを押すと「メールまたはInstagramのDMからご連絡ください」という案内が出るだけで、誤って壊れたページに飛ぶことはありません。

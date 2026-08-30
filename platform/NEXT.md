@@ -96,6 +96,5 @@ WHERE email = ? AND status IN ('active','trialing') AND is_test = 0;
 
 ## C. 積み残し（急がないもの）
 
-- STORE と COACH の写真（いまはプレースホルダー）
 - テスト用カスタマーポータルのログインリンク（`STRIPE_TEST_PORTAL`）
   ※ `?test=1` で解約の流れも試したい場合のみ必要

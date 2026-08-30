@@ -25,8 +25,10 @@
 
 ```sql
 SELECT 1 FROM subscriptions
-WHERE email = ? AND status IN ('active', 'trialing');
+WHERE email = ? AND status IN ('active', 'trialing') AND is_test = 0;
 ```
+
+（`is_test = 0` を忘れると、テストモードで作った会員も「有効」と判定されてしまいます）
 
 解約しても、期間の末日まで Stripe 側の状態は `active` のままです。
 末日を過ぎると Stripe が `customer.subscription.deleted` を送ってきて `canceled` に変わります。
