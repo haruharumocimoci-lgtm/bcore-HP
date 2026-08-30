@@ -48,13 +48,21 @@ PRICE_OFFLINE = "price_1U5xPOAZRcjZV00NHLzLpy6l"   # OFFLINE ¥9,900/月
 ※ 本番モードとテストモードで price_id は別物。上記は本番用。
 　 テストモードで確認したIDの例: `price_1U5lhCPOGqXMNRpUEWdDONc1`
 
-### A-3. HPのONLINE支払いリンクを検証する
-`index.html` の `STRIPE_LINKS.online` が、カスタマーポータルのURLと
-同じID（`fZufZgbia8HSc358Bq5Vu00`）になっている。コピーミスの可能性あり。
+### A-3. HPのONLINE支払いリンクを検証する ✅ 完了
 
-確認方法: `https://b-core.space/#price` の ONLINE「申し込む」を押す
-- ¥5,500の決済画面が出る → 問題なし
-- メールアドレス入力画面が出る → URLが違うので商品カタログから取り直す
+`https://b-core.space/#price` の ONLINE「申し込む」から ¥5,500 の決済画面が出ることを確認済み。
+`STRIPE_LINKS.online` は正しい。
+
+### A-3b. 解約ポータルのリンクを検証する ⬜ 未確認
+`index.html` の `STRIPE_PORTAL` は、ONLINE支払いリンクと末尾トークンが同一
+（`fZufZgbia8HSc358Bq5Vu00`）。A-3で支払いリンク側が正しいと確定したため、
+**ポータル側が貼り間違いの疑い**（支払いリンクのトークンを billing.stripe.com/p/login/ の
+後ろに貼ってしまったパターン）。
+
+確認方法: `https://b-core.space/#cancel` の「解約・お支払い情報の確認へ」を押す
+- メールアドレス入力画面が出る → 問題なし
+- エラー/404 → Stripe →「設定」→「請求」→「カスタマーポータル」→
+  下部「ログインリンクを共有する」から正しいURLを取り直して `STRIPE_PORTAL` に貼る
 
 ### A-4. テストデータを消す（本番運用の前に）
 ```sql
