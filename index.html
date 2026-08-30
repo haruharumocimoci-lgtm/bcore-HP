@@ -557,6 +557,15 @@ ul { list-style: none; }
 }
 .ph--square { aspect-ratio: 1; }
 .ph--portrait { aspect-ratio: 3 / 4; }
+/* 写真を入れると、しま模様のプレースホルダーの上に重なって枠いっぱいに表示される。
+   画像ファイルが無い場合は img が消え、プレースホルダーがそのまま残る（下部のonerror） */
+.ph__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
 
 /* ===== COACH ===== */
 .coach__grid {
@@ -1058,7 +1067,9 @@ ul { list-style: none; }
   <section class="section section--flush">
     <div class="store__grid">
       <article class="store__item">
-        <div class="ph ph--square" data-ph="PRODUCT PHOTO"></div>
+        <div class="ph ph--square" data-ph="PRODUCT PHOTO">
+          <img class="ph__img" src="images/product-spasub.jpg" alt="スパサブ" loading="lazy" onerror="this.remove()">
+        </div>
         <h3>スパサブ</h3>
         <p class="store__price">¥300<span>（税込）</span></p>
         <a href="#" class="btn btn--line store__btn" data-stripe="spasub" hidden>購入する</a>
@@ -1081,7 +1092,9 @@ ul { list-style: none; }
   <section class="section section--flush">
     <div class="coach__grid">
       <article class="coach__card">
-        <div class="ph ph--portrait" data-ph="PHOTO"></div>
+        <div class="ph ph--portrait" data-ph="PHOTO">
+          <img class="ph__img" src="images/coach-takeuchi.jpg" alt="竹内 悠悟 コーチ" loading="lazy" onerror="this.remove()">
+        </div>
         <h3>竹内 悠悟<span class="coach__en">YUGO TAKEUCHI</span></h3>
         <dl>
           <dt>生まれ</dt><dd>2005年</dd>
@@ -1091,7 +1104,9 @@ ul { list-style: none; }
         </dl>
       </article>
       <article class="coach__card">
-        <div class="ph ph--portrait" data-ph="PHOTO"></div>
+        <div class="ph ph--portrait" data-ph="PHOTO">
+          <img class="ph__img" src="images/coach-mochimaru.jpg" alt="持丸 春聡 コーチ" loading="lazy" onerror="this.remove()">
+        </div>
         <h3>持丸 春聡<span class="coach__en">HARUTO MOCHIMARU</span></h3>
         <dl>
           <dt>生まれ</dt><dd>2005年4月21日</dd>
