@@ -31,11 +31,17 @@ export default {
     }
     if (request.method === 'GET' && url.pathname === '/health') {
       // 合言葉が実行環境から見えているかを true/false で示す（値そのものは出さない）
+      // prices は wrangler.toml の [vars] が反映されているかの確認用。
+      // 両方 false なら、価格IDを書き換えた後のデプロイがまだ届いていない。
       return jsonResponse({
         ok: true,
         secrets: {
           live: Boolean(await readSecret(env, 'STRIPE_WEBHOOK_SECRET')),
           test: Boolean(await readSecret(env, 'STRIPE_WEBHOOK_SECRET_TEST')),
+        },
+        prices: {
+          online: Boolean(env.PRICE_ONLINE),
+          offline: Boolean(env.PRICE_OFFLINE),
         },
       });
     }
