@@ -12,8 +12,8 @@ database_id = "7c64b837-6471-40ba-987d-916c5e6c75cd"
 # Stripeダッシュボード →「商品カタログ」→ 商品 → 料金 の price_xxxxx をコピーしてください。
 # 空のままでも会員判定は動きます（プラン名が空欄になるだけ）。
 [vars]
-PRICE_ONLINE = ""
-PRICE_OFFLINE = ""
+PRICE_ONLINE = "price_1U5xPOAZRcjZV00NgOdw0Y6a"
+PRICE_OFFLINE = "price_1U5xPOAZRcjZV00NHLzLpy6l"
 
 # シークレット（wrangler.toml には書かない。コマンドで登録する）
 #   npx wrangler secret put STRIPE_WEBHOOK_SECRET

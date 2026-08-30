@@ -1,6 +1,6 @@
 # 次にやること（引き継ぎメモ）
 
-最終更新: 2026-08-21
+最終更新: 2026-08-30
 
 ## いまの状態
 
@@ -31,19 +31,21 @@ Stripe →「開発者」→「Webhook」→ エンドポイント →「イベ�
 
 → これで `subscriptions.email` が埋まる（いまは NULL）。
 
-### A-2. プランの価格IDを設定する
-Stripe →「商品カタログ」→ 各商品の料金にある `price_xxxxx` を調べ、
-`platform/wrangler.toml` の `[vars]` に記入して再デプロイ。
+### A-2. プランの価格IDを設定する ✅ 完了
+
+本番モードの `price_id` を `platform/wrangler.toml` の `[vars]` に設定済み。
 
 ```toml
 [vars]
-PRICE_ONLINE  = "price_xxxxxxxx"
-PRICE_OFFLINE = "price_yyyyyyyy"
+PRICE_ONLINE  = "price_1U5xPOAZRcjZV00NgOdw0Y6a"   # ONLINE  ¥5,500/月
+PRICE_OFFLINE = "price_1U5xPOAZRcjZV00NHLzLpy6l"   # OFFLINE ¥9,900/月
 ```
 
-→ これで `subscriptions.plan` に online / offline が入る（いまは NULL）。
+これ以降に届く契約は `subscriptions.plan` に online / offline が入る。
+設定前に届いた分を埋めたい場合は、Stripeの「開発者」→「Webhook」→「イベントの配信」から
+該当イベントを再送信する（A-1と同じ操作）。
 
-※ 本番モードとテストモードで price_id は別物。本番用を入れること。
+※ 本番モードとテストモードで price_id は別物。上記は本番用。
 　 テストモードで確認したIDの例: `price_1U5lhCPOGqXMNRpUEWdDONc1`
 
 ### A-3. HPのONLINE支払いリンクを検証する
