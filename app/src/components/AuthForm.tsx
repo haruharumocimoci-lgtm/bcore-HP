@@ -24,22 +24,20 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     setBusy(true);
     try {
       if (mode === "signup") {
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
-          },
+        // サーバー側で「確認済み」のアカウントを作る（確認メールを待たせない）
+        const res = await fetch("/api/auth/signup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
         });
+        const json = (await res.json()) as { error?: string; code?: string };
+        if (!res.ok) throw new Error(json.error || "登録に失敗しました");
+
+        // 作成できたらそのままログインさせる
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        if (data.session) {
-          router.push(next);
-          router.refresh();
-        } else {
-          setInfo(
-            "確認メールを送信しました。メール内のリンクを開くと登録が完了します。"
-          );
-        }
+        router.push(next);
+        router.refresh();
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
@@ -51,9 +49,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
       setError(
         message.includes("Invalid login credentials")
           ? "メールアドレスまたはパスワードが違います。"
-          : message.includes("already registered")
-            ? "このメールアドレスは登録済みです。ログインしてください。"
-            : message
+          : message
       );
     } finally {
       setBusy(false);
