@@ -1,0 +1,16 @@
+# ローカル開発用の変数（このファイルを .dev.vars という名前でコピーして使う。.dev.vars はGit管理外）
+#   cp .dev.vars.example .dev.vars
+#   npx wrangler dev
+#   npm test            # 別のターミナルで
+
+# Webhook署名の合言葉（npm test の既定値と揃えてある）
+STRIPE_WEBHOOK_SECRET=whsec_test_secret
+STRIPE_WEBHOOK_SECRET_TEST=whsec_testmode_secret
+
+# 在庫管理のテスト用。npm test が立てる「偽のStripe API」を使うと、
+# まとめ買いの個数・売り切れ時のリンク無効化までローカルで確認できる
+STRIPE_API_BASE=http://127.0.0.1:4242
+STRIPE_SECRET_KEY=sk_test_dummy
+STRIPE_SECRET_KEY_TEST=sk_test_dummy
+PRICE_SPASUB=price_spasub_test
+PAYMENT_LINK_SPASUB=plink_spasub_test

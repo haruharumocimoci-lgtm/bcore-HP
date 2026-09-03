@@ -20,6 +20,8 @@
 | `customers` | メールアドレスと Stripe の顧客ID（`cus_xxx`）の対応表 |
 | `subscriptions` | 契約ごとの状態（プラン・`active`/`canceled`・期間の終わり・解約予約の有無） |
 | `webhook_events` | 受信済み通知のID。同じ通知が二重に処理されるのを防ぐ |
+| `inventory` | スパサブなど都度購入の商品の残り個数（本番・テストモード別） |
+| `orders` | スパサブの注文（個数・返金状況）。在庫を減らした記録 |
 
 「入室してよい人」の判定はこの1行で行えます。
 
@@ -100,15 +102,16 @@ https://dashboard.stripe.com → 「開発者」→「Webhook」→「エンド�
 | 項目 | 値 |
 | --- | --- |
 | エンドポイントURL | `https://bcore-hp.haruharumocimoci.workers.dev/stripe/webhook` |
-| イベント | 下の5つ |
+| イベント | 下の6つ |
 
 送信するイベント:
 
-- `checkout.session.completed` — 申し込み完了（**メールアドレスはここで分かります**）
+- `checkout.session.completed` — 申し込み完了（**メールアドレスはここで分かります**）／スパサブの購入（在庫を減らす）
 - `customer.subscription.created` — 契約開始
 - `customer.subscription.updated` — 解約予約・プラン変更・支払い失敗
 - `customer.subscription.deleted` — 契約終了（期間末に届く）
 - `customer.updated` — メールアドレスの変更
+- `charge.refunded` — 返金（スパサブの在庫を戻す）
 
 登録すると `whsec_...`（署名シークレット）が表示されます。これを手順4で登録してください。
 
@@ -118,7 +121,7 @@ Stripeを**テストモード**に切り替えると、テストカード `4242 
 実際のお金を動かさずに申し込みから解約まで何度でも試せます。
 
 1. Stripeダッシュボード右上の切り替えで「**テストモード**」にする
-2. 「開発者」→「Webhook」→ **同じURL**でエンドポイントを作る（イベントも同じ5つ）
+2. 「開発者」→「Webhook」→ **同じURL**でエンドポイントを作る（イベントも同じ6つ）
 3. 発行された `whsec_...` を、Cloudflareの `STRIPE_WEBHOOK_SECRET_TEST` に登録する
 
 本番用の `STRIPE_WEBHOOK_SECRET` はそのままで構いません。
@@ -153,13 +156,88 @@ npx wrangler d1 execute bcore-members --remote --command "SELECT email, plan, st
 ## ローカルで開発する
 
 ```sh
-npm run schema:local      # ローカル用DBにテーブルを作る（初回のみ）
-npx wrangler dev          # http://127.0.0.1:8787 で起動
-npm test                  # 別のターミナルで実行
+cp .dev.vars.example .dev.vars   # ローカル用の変数（初回のみ。Git管理外）
+npm run schema:local             # ローカル用DBにテーブルを作る（初回のみ）
+npx wrangler dev                 # http://127.0.0.1:8787 で起動
+npm test                         # 別のターミナルで実行
 ```
 
-`npm test` は署名検証・二重受信・解約・通知の順序入れ替わりを確認します（13項目）。
-ローカルでは `.dev.vars` の `STRIPE_WEBHOOK_SECRET` が使われます（Git管理外）。
+`npm test` は署名検証・二重受信・解約・通知の順序入れ替わり・在庫管理を確認します（32項目）。
+在庫管理のテストは、テスト自身が立てる「偽のStripe API」を使うので、本物のStripeには繋ぎません
+（`.dev.vars.example` の `STRIPE_API_BASE` がその設定です）。
+
+## 在庫管理（スパサブ）
+
+スパサブ（¥300・都度購入）は在庫 600 個からスタートします。
+**在庫はStripeの決済完了で自動的に減り、0 になるとHPのSTOREページが「SOLD OUT」表示に切り替わります。** 手で数える必要はありません。
+
+```
+お客さんがStripeで購入
+   ↓ Webhook（checkout.session.completed）
+ inventory.stock を買った個数ぶん減らす（明細を Stripe API から取得）
+   ↓ 0 になったら
+ Stripe の支払いリンクを自動で無効化（HPを経由しない直接URLからの購入も止まる）
+
+HPのSTOREページ → GET /stock → 「残り◯個」（50個以下）／「SOLD OUT」（0個）を表示
+全額返金        → Webhook（charge.refunded）→ その注文の個数ぶん在庫を戻す
+```
+
+`GET /stock` の返事はこんな形です（HPが読むだけなので、誰でも見られて問題ない情報だけ返します）。
+
+```json
+{"ok":true,"test":false,"products":{"spasub":{"stock":598,"soldOut":false,"updatedAt":1756900000}}}
+```
+
+### 有効にする手順（初回のみ）
+
+1. **テーブルを作る**: `npm run schema:remote`
+   `inventory` と `orders` が作られ、スパサブ 600 個（本番用・テスト用）が入ります。既存の会員データには触りません。
+2. **スパサブのIDを `wrangler.toml` の `[vars]` に書く**
+   - `PRICE_SPASUB` … Stripe →「商品カタログ」→ スパサブ → 料金 の `price_xxx`
+   - `PAYMENT_LINK_SPASUB` … Stripe →「支払いリンク」→ スパサブのリンクを開く → 詳細に表示される `plink_xxx`（`buy.stripe.com/...` のURLではありません）
+   - テストモードの支払いリンクも自動で無効化したい場合は `PAYMENT_LINK_SPASUB_TEST` に `plink_xxx`（任意）
+3. **`STRIPE_SECRET_KEY` を登録する**（未登録なら）: `npx wrangler secret put STRIPE_SECRET_KEY`
+   決済の明細（何個買われたか）を Stripe に問い合わせるのに使います。無い場合は「1決済 = 1個」として数えます。
+   テストモードも試すなら `STRIPE_SECRET_KEY_TEST` に `sk_test_xxx` も。
+4. **StripeのWebhookに `charge.refunded` を追加する**（本番・テストの両方のエンドポイント）
+5. push（自動ビルド）または `npm run deploy`。`/health` で `prices.spasub` と `stock.paymentLink` が `true`、`stock.apiKey.live` が `true` になっていれば完了です。
+
+> 設定が空のままでも壊れはしません。在庫が減らず、HPには従来どおり購入ボタンが出続けるだけです。
+
+### 在庫を見る・補充する
+
+```sh
+npm run stock      # 残り個数を見る（is_test=0 が本番、1 がテストモード）
+```
+
+```sh
+# 100 個入荷したとき
+npx wrangler d1 execute bcore-members --remote --command "UPDATE inventory SET stock = stock + 100, updated_at = strftime('%s','now') WHERE product = 'spasub' AND is_test = 0;"
+
+# 数え直して 600 に戻すとき
+npx wrangler d1 execute bcore-members --remote --command "UPDATE inventory SET stock = 600, updated_at = strftime('%s','now') WHERE product = 'spasub' AND is_test = 0;"
+
+# 注文の一覧（新しい順に20件）
+npx wrangler d1 execute bcore-members --remote --command "SELECT id, quantity, email, status, datetime(created_at,'unixepoch','+9 hours') AS jst FROM orders WHERE is_test = 0 ORDER BY created_at DESC LIMIT 20;"
+```
+
+> ⚠️ 売り切れで無効化された支払いリンクは、自動では元に戻りません。
+> 入荷して在庫を足したら、Stripe →「支払いリンク」→ スパサブ →「有効にする」で戻してください。
+> HPの表示は在庫を足した時点で自動的に購入ボタンへ戻ります。
+
+### Stripe側でも上限をかける（おすすめ）
+
+Workerが止まっている間の売り越しを防ぐ二重の安全策として、Stripeの支払いリンクの設定（「詳細オプション」）で
+**「支払い回数を制限する」を 600** にしておくのがおすすめです。上限に達するとStripe側でも購入できなくなります。
+
+### 知っておくこと
+
+- **一部返金**では在庫は戻りません（全額返金のみ）。戻したい場合は上の `UPDATE` 文で手で足してください
+- 明細を取得できなかった決済は **1個として数え**、Workerのログに警告が出ます。まとめ買いだった場合は手で直してください
+- **テストモード**の購入はテスト用の在庫（`is_test = 1`）を減らします。HPを `?test=1` で開くとそちらの在庫が表示されるので、
+  `UPDATE inventory SET stock = 1 WHERE product = 'spasub' AND is_test = 1;` にしてからテストカードで1つ買うと、SOLD OUT 表示を実際に確認できます
+- Workerが落ちた等で **HP側だけ緊急に SOLD OUT** にしたいときは、`index.html` の `STORE_FORCE_SOLD_OUT.spasub` を `true` にして push
+- 商品を増やすときは `src/index.js` の `STOCK_PRODUCTS`、`wrangler.toml` の `[vars]`、`schema.sql` の初期在庫、`index.html` の `data-product` の4か所に追加します
 
 ## セキュリティ上の要点
 

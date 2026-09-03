@@ -1,6 +1,6 @@
 # 次にやること（引き継ぎメモ）
 
-最終更新: 2026-08-30
+最終更新: 2026-09-03
 
 ## いまの状態
 
@@ -13,6 +13,7 @@
 | 解約ルール（いつでも解約可・期間末日まで利用可・返金なし） | ✅ 反映済み |
 | Webhook受信Worker | ✅ 公開・動作確認済み |
 | 会員データベース（Cloudflare D1 `bcore-members`） | ✅ 記録を確認 |
+| スパサブ在庫管理（自動で減る・SOLD OUT表示） | 🔧 実装済み。Stripe側の設定待ち（A-5） |
 | 講義プラットフォーム | ⬜ 未着手 |
 
 公開URL: https://bcore-hp.haruharumocimoci.workers.dev
@@ -74,6 +75,21 @@ DELETE FROM subscriptions WHERE is_test = 1;
 DELETE FROM customers     WHERE is_test = 1;
 DELETE FROM webhook_events WHERE is_test = 1;
 ```
+
+### A-5. スパサブの在庫管理を有効にする 🔧 設定待ち
+
+コードは入っている（`platform/README.md`「在庫管理」に詳細）。動かすには次の設定が必要:
+
+- [ ] `npm run schema:remote` で `inventory` / `orders` テーブルを作る（スパサブ 600 個が入る）
+- [ ] `wrangler.toml` の `PRICE_SPASUB` にスパサブの `price_xxx` を書く
+- [ ] `wrangler.toml` の `PAYMENT_LINK_SPASUB` にスパサブの `plink_xxx` を書く
+- [ ] `STRIPE_SECRET_KEY` が未登録なら `npx wrangler secret put STRIPE_SECRET_KEY`（個数の取得に使う）
+- [ ] StripeのWebhookに `charge.refunded` を追加（本番・テスト両方）
+- [ ] push して `/health` で `prices.spasub` / `stock.paymentLink` / `stock.apiKey.live` が true になるのを確認
+- [ ] （おすすめ）Stripeの支払いリンク設定で「支払い回数を制限する」を 600 に
+- [ ] `?test=1` でテスト在庫を 1 にしてテスト購入 → HPが SOLD OUT になるのを確認
+
+在庫の確認は `npm run stock`、補充は README の `UPDATE` 文。売り切れで無効化された支払いリンクは手動で有効に戻す。
 
 ---
 

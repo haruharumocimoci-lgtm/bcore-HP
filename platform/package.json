@@ -7,7 +7,8 @@
     "deploy": "wrangler deploy",
     "schema:local": "wrangler d1 execute bcore-members --local --file schema.sql",
     "schema:remote": "wrangler d1 execute bcore-members --remote --file schema.sql",
-    "test": "node test/webhook.test.mjs"
+    "test": "node test/webhook.test.mjs",
+    "stock": "wrangler d1 execute bcore-members --remote --command \"SELECT product, is_test, stock, datetime(updated_at, 'unixepoch', '+9 hours') AS updated_jst FROM inventory\""
   },
   "devDependencies": {
     "wrangler": "^4"
