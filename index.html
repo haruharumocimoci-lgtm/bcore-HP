@@ -542,6 +542,68 @@ ul { list-style: none; }
   letter-spacing: .08em;
 }
 
+/* サイズ選択（S / M / L） */
+.store__sizes {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+.store__size {
+  min-width: 44px;
+  padding: 9px 0;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  color: var(--black);
+  background: transparent;
+  border: 1px solid var(--gray-mid);
+  cursor: pointer;
+  transition: .2s;
+}
+.store__size:hover { border-color: var(--black); }
+.store__size.is-selected {
+  color: var(--white);
+  background: var(--black);
+  border-color: var(--black);
+}
+.store__size:disabled {
+  color: #bbb;
+  border-color: #eee;
+  background: #fafafa;
+  cursor: default;
+  text-decoration: line-through;
+}
+.store__soldout {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: .3em;
+  color: var(--white);
+  background: rgba(0, 0, 0, .45);
+}
+.store__item--soldout .ph__img { filter: grayscale(1); opacity: .6; }
+.store__item--soldout .store__price { color: #aaa; }
+.store__size-note {
+  margin-top: 10px;
+  font-size: 12px;
+  letter-spacing: .08em;
+  color: #888;
+}
+.btn--disabled, .btn--disabled:hover {
+  background: var(--gray-mid);
+  color: #888;
+  border-color: var(--gray-mid);
+  cursor: default;
+  pointer-events: none;
+}
+.store__soldout[hidden], .store__sizes[hidden], .store__size-note[hidden], .store__btn[hidden] { display: none; }
+
 /* ===== PLACEHOLDER (photo slots) ===== */
 .ph {
   background:
@@ -1083,13 +1145,20 @@ ul { list-style: none; }
 
   <section class="section section--flush">
     <div class="store__grid">
-      <article class="store__item">
+      <article class="store__item" id="spasubItem">
         <div class="ph ph--square" data-ph="PRODUCT PHOTO">
           <img class="ph__img" src="images/product-spasub.jpg" alt="スパサブ" loading="lazy" onerror="this.remove()">
+          <span class="store__soldout" hidden>SOLD OUT</span>
         </div>
         <h3>スパサブ</h3>
         <p class="store__price">¥300<span>（税込）</span></p>
-        <a href="#" class="btn btn--line store__btn" data-stripe="spasub" hidden>購入する</a>
+        <div class="store__sizes" role="group" aria-label="サイズを選ぶ" hidden>
+          <button type="button" class="store__size" data-size="s">S</button>
+          <button type="button" class="store__size" data-size="m">M</button>
+          <button type="button" class="store__size" data-size="l">L</button>
+        </div>
+        <p class="store__size-note" hidden></p>
+        <a href="#" class="btn btn--line store__btn" hidden>購入する</a>
       </article>
     </div>
     <p class="store__note" id="storeNote">※ 商品は今後追加予定。購入方法はお問い合わせください。</p>
@@ -1365,17 +1434,53 @@ const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').match
 const STRIPE_LINKS = {
   online:  'https://buy.stripe.com/fZufZgbia8HSc358Bq5Vu00',   // ONLINE  ¥5,500/月（サブスクリプション）
   offline: 'https://buy.stripe.com/28EaEWbia6zKaZ16ti5Vu01',   // OFFLINE ¥9,900/月（サブスクリプション）
-  spasub:  'https://buy.stripe.com/4gM8wOeum4rC9UX9Fu5Vu03'    // スパサブ ¥300（都度購入）
+  // スパサブ ¥300（都度購入）はサイズごとに別々の支払いリンクを作ります。
+  // Stripe側でリンクごとに「支払い件数を制限する」を185にしておくと、そのサイズが売り切れた時点で
+  // Stripeが自動でリンクを無効化します（下の「スパサブのサイズ」も参照）。
+  spasub_s: '',   // スパサブ S（上限185）
+  spasub_m: '',   // スパサブ M（上限185）
+  spasub_l: ''    // スパサブ L（上限185）
 };
 
 // テストモードで発行したリンク（?test=1 を付けて開いたときだけ使われる）
 const STRIPE_TEST_LINKS = {
   online:  'https://buy.stripe.com/test_cNidRb3Br9uw1lZ7KIbQY00',   // テスト用 ONLINE
   offline: 'https://buy.stripe.com/test_5kQ14p3Br2240hVe96bQY01',   // テスト用 OFFLINE
-  spasub:  'https://buy.stripe.com/test_8x2eVf9ZP0Y07KnghebQY02'    // テスト用 スパサブ
+  spasub_s: 'https://buy.stripe.com/test_8x2eVf9ZP0Y07KnghebQY02',  // テスト用 スパサブ S
+  spasub_m: '',                                                     // テスト用 スパサブ M
+  spasub_l: ''                                                      // テスト用 スパサブ L
 };
 
 const STRIPE_PENDING_MSG = '申し込みフォームは準備中です。お手数ですがInstagramのDMからご連絡ください。';
+
+/* =========================================================
+   スパサブのサイズ（STOREページ）
+   ---------------------------------------------------------
+   S / M / L から選んで「購入する」を押すと、そのサイズの決済ページが開きます。
+
+   ■ 在庫（各185個）の止め方
+   Stripeダッシュボード →「支払いリンク」→ サイズごとのリンク →「編集」→「詳細オプション」で
+   ・「支払い件数を制限する」をオンにして 185
+   ・「数量」の「顧客が数量を調整できる」はオフ（オンだと1回の決済で複数個買われ、185個を超えます）
+   を設定してください。185件売れた時点でStripeがそのリンクを自動で無効化します。
+
+   ■ 売り切れたサイズをサイトでも消す
+   下の SPASUB_SOLD_OUT で、売り切れたサイズを true にして push すると、
+   そのサイズのボタンが選べなくなります（3つとも true なら商品全体が SOLD OUT 表示）。
+   Stripeの残り件数は、支払いリンクの詳細ページで確認できます。
+   ========================================================= */
+const SPASUB_SIZES = [
+  { key: 's', label: 'S' },
+  { key: 'm', label: 'M' },
+  { key: 'l', label: 'L' }
+];
+
+// 売り切れたサイズを true にする（Stripe側の上限とは別に、サイト側でも選べなくする）
+const SPASUB_SOLD_OUT = {
+  s: false,
+  m: false,
+  l: false
+};
 
 /* =========================================================
    Stripe カスタマーポータル設定（解約・お支払い情報の変更）
@@ -1431,7 +1536,7 @@ const stripeLinks = stripeTestMode ? STRIPE_TEST_LINKS : STRIPE_LINKS;
   }
 
   const storeNote = document.getElementById('storeNote');
-  if (storeNote && stripeLinks.spasub) {
+  if (storeNote && SPASUB_SIZES.some(size => stripeLinks['spasub_' + size.key])) {
     storeNote.textContent = '※ 商品は今後追加予定です。';
   }
 
@@ -1442,6 +1547,80 @@ const stripeLinks = stripeTestMode ? STRIPE_TEST_LINKS : STRIPE_LINKS;
     flag.textContent = 'Stripe テストモードで表示中 — 実際の課金は発生しません（テストカード 4242 4242 4242 4242）';
     document.body.appendChild(flag);
   }
+})();
+
+// スパサブのサイズ選択。選んだサイズの決済ページへ「購入する」を繋ぐ
+(function setupSpasubSizes() {
+  const item = document.getElementById('spasubItem');
+  if (!item) return;
+
+  const sizeBox = item.querySelector('.store__sizes');
+  const buttons = item.querySelectorAll('.store__size');
+  const note    = item.querySelector('.store__size-note');
+  const badge   = item.querySelector('.store__soldout');
+  const buyBtn  = item.querySelector('.store__btn');
+
+  // 支払いリンクが入っていて、かつ売り切れにしていないサイズだけが選べる
+  const linkFor  = key => stripeLinks['spasub_' + key] || '';
+  const isOnSale = key => Boolean(linkFor(key)) && !SPASUB_SOLD_OUT[key];
+
+  const onSale   = SPASUB_SIZES.filter(size => isOnSale(size.key));
+  const listed   = SPASUB_SIZES.filter(size => linkFor(size.key) || SPASUB_SOLD_OUT[size.key]);
+  const soldOutLabels = listed.filter(size => !isOnSale(size.key)).map(size => size.label);
+
+  // リンクが1つも無い（＝販売前）ときは、これまで通りサイズもボタンも出さない
+  if (listed.length === 0) return;
+
+  let selected = onSale.length ? onSale[0].key : null;
+
+  function render() {
+    buttons.forEach(btn => {
+      const key = btn.dataset.size;
+      const shown = listed.some(size => size.key === key);
+      btn.hidden = !shown;
+      btn.disabled = !isOnSale(key);
+      btn.classList.toggle('is-selected', key === selected);
+      btn.setAttribute('aria-pressed', String(key === selected));
+      btn.title = isOnSale(key) ? '' : 'このサイズは売り切れです';
+    });
+
+    sizeBox.hidden = false;
+    item.classList.toggle('store__item--soldout', selected === null);
+    badge.hidden = selected !== null;
+
+    if (selected === null) {
+      note.textContent = '全サイズ売り切れました。再入荷まで今しばらくお待ちください。';
+      note.hidden = false;
+      buyBtn.textContent = 'SOLD OUT';
+      buyBtn.classList.add('btn--disabled');
+      buyBtn.setAttribute('aria-disabled', 'true');
+      buyBtn.removeAttribute('href');
+      buyBtn.hidden = false;
+      return;
+    }
+
+    note.textContent = soldOutLabels.length
+      ? `${soldOutLabels.join('・')}サイズは売り切れです`
+      : '';
+    note.hidden = soldOutLabels.length === 0;
+
+    buyBtn.textContent = '購入する';
+    buyBtn.classList.remove('btn--disabled');
+    buyBtn.removeAttribute('aria-disabled');
+    buyBtn.setAttribute('href', linkFor(selected));
+    buyBtn.setAttribute('rel', 'noopener');
+    buyBtn.hidden = false;
+  }
+
+  buttons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (!isOnSale(btn.dataset.size)) return;
+      selected = btn.dataset.size;
+      render();
+    });
+  });
+
+  render();
 })();
 
 // 解約ボタン（Stripeカスタマーポータルへ）
