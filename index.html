@@ -543,10 +543,23 @@ ul { list-style: none; }
 }
 
 /* サイズ選択（S / M / L） */
+.store__size-label {
+  margin-top: 18px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .12em;
+}
+.store__size-label span {
+  margin-left: 8px;
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: .06em;
+  color: #888;
+}
 .store__sizes {
   display: flex;
   gap: 8px;
-  margin-top: 14px;
+  margin-top: 8px;
 }
 .store__size {
   min-width: 44px;
@@ -602,7 +615,7 @@ ul { list-style: none; }
   cursor: default;
   pointer-events: none;
 }
-.store__soldout[hidden], .store__sizes[hidden], .store__size-note[hidden], .store__btn[hidden] { display: none; }
+.store__soldout[hidden], .store__sizes[hidden], .store__size-label[hidden], .store__size-note[hidden], .store__btn[hidden] { display: none; }
 
 /* ===== PLACEHOLDER (photo slots) ===== */
 .ph {
@@ -1152,6 +1165,7 @@ ul { list-style: none; }
         </div>
         <h3>スパサブ</h3>
         <p class="store__price">¥300<span>（税込）</span></p>
+        <p class="store__size-label" hidden>サイズ<span>お選びください</span></p>
         <div class="store__sizes" role="group" aria-label="サイズを選ぶ" hidden>
           <button type="button" class="store__size" data-size="s">S</button>
           <button type="button" class="store__size" data-size="m">M</button>
@@ -1537,7 +1551,7 @@ const stripeLinks = stripeTestMode ? STRIPE_TEST_LINKS : STRIPE_LINKS;
 
   const storeNote = document.getElementById('storeNote');
   if (storeNote && SPASUB_SIZES.some(size => stripeLinks['spasub_' + size.key])) {
-    storeNote.textContent = '※ 商品は今後追加予定です。';
+    storeNote.textContent = '※ サイズをお選びのうえ購入ボタンを押してください。サイズごとに決済ページが分かれています。商品は今後追加予定です。';
   }
 
   // テスト用リンクで表示していることを画面上でも分かるようにする
@@ -1554,7 +1568,8 @@ const stripeLinks = stripeTestMode ? STRIPE_TEST_LINKS : STRIPE_LINKS;
   const item = document.getElementById('spasubItem');
   if (!item) return;
 
-  const sizeBox = item.querySelector('.store__sizes');
+  const sizeBox   = item.querySelector('.store__sizes');
+  const sizeLabel = item.querySelector('.store__size-label');
   const buttons = item.querySelectorAll('.store__size');
   const note    = item.querySelector('.store__size-note');
   const badge   = item.querySelector('.store__soldout');
@@ -1585,6 +1600,7 @@ const stripeLinks = stripeTestMode ? STRIPE_TEST_LINKS : STRIPE_LINKS;
     });
 
     sizeBox.hidden = false;
+    if (sizeLabel) sizeLabel.hidden = false;
     item.classList.toggle('store__item--soldout', selected === null);
     badge.hidden = selected !== null;
 
@@ -1604,7 +1620,8 @@ const stripeLinks = stripeTestMode ? STRIPE_TEST_LINKS : STRIPE_LINKS;
       : '';
     note.hidden = soldOutLabels.length === 0;
 
-    buyBtn.textContent = '購入する';
+    const label = (SPASUB_SIZES.find(size => size.key === selected) || {}).label || '';
+    buyBtn.textContent = label ? `${label}サイズを購入する` : '購入する';
     buyBtn.classList.remove('btn--disabled');
     buyBtn.removeAttribute('aria-disabled');
     buyBtn.setAttribute('href', linkFor(selected));
