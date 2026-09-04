@@ -1437,9 +1437,9 @@ const STRIPE_LINKS = {
   // スパサブ ¥300（都度購入）はサイズごとに別々の支払いリンクを作ります。
   // Stripe側でリンクごとに「支払い件数を制限する」を185にしておくと、そのサイズが売り切れた時点で
   // Stripeが自動でリンクを無効化します（下の「スパサブのサイズ」も参照）。
-  spasub_s: '',   // スパサブ S（上限185）
-  spasub_m: '',   // スパサブ M（上限185）
-  spasub_l: ''    // スパサブ L（上限185）
+  spasub_s: 'https://buy.stripe.com/5kQ6oG3PIbU4d797xm5Vu04',   // スパサブ S（上限185）
+  spasub_m: 'https://buy.stripe.com/28E3cu71U6zKc35dVK5Vu05',   // スパサブ M（上限185）
+  spasub_l: 'https://buy.stripe.com/4gMdR84TM5vG5EH18Y5Vu06'    // スパサブ L（上限185）
 };
 
 // テストモードで発行したリンク（?test=1 を付けて開いたときだけ使われる）
