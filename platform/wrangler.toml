@@ -14,19 +14,7 @@ database_id = "7c64b837-6471-40ba-987d-916c5e6c75cd"
 [vars]
 PRICE_ONLINE = "price_1U5xPOAZRcjZV00NgOdw0Y6a"
 PRICE_OFFLINE = "price_1U5xPOAZRcjZV00NHLzLpy6l"
-# スパサブ（在庫管理用。ファイル末尾の説明を参照）
-PRICE_SPASUB = ""
-PAYMENT_LINK_SPASUB = ""
 
 # シークレット（wrangler.toml には書かない。コマンドで登録する）
 #   npx wrangler secret put STRIPE_WEBHOOK_SECRET
 #   npx wrangler secret put STRIPE_SECRET_KEY
-
-# ---------------------------------------------------------
-# スパサブの在庫管理（platform/README.md「在庫管理」参照）
-#   PRICE_SPASUB        … スパサブの料金ID（price_xxx）。決済の明細からスパサブを見分けて個数を数える
-#   PAYMENT_LINK_SPASUB … スパサブの支払いリンクID（plink_xxx）。売り切れたらリンクを自動で無効化する。
-#                         明細を取得できないときの予備の判定（1個として数える）にも使う
-#   ※ テストモードの支払いリンクは PAYMENT_LINK_SPASUB_TEST に書く（任意）
-# どちらも Stripeダッシュボード →「商品カタログ」→ スパサブ から確認できる。
-# 空のままだと在庫は減らない（HPの購入ボタンはそのまま出る）。

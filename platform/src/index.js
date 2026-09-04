@@ -8,11 +8,6 @@
  * エンドポイント:
  *   POST /stripe/webhook  … Stripeからの通知を受ける（Stripeダッシュボードに登録するURL）
  *   GET  /health          … 動作確認用
- *   GET  /stock           … 在庫の残数（HPのSTOREページが読んで SOLD OUT を出す）
- *
- * 在庫管理（スパサブ）:
- *   決済完了 → 在庫を減らす／全額返金 → 在庫を戻す／0になったら支払いリンクを無効化。
- *   商品の見分け方は wrangler.toml の PRICE_SPASUB / PAYMENT_LINK_SPASUB。
  *
  * 必要なシークレット（Cloudflareの「変数とシークレット」で設定）:
  *   STRIPE_WEBHOOK_SECRET      … whsec_xxx（本番モードのWebhook登録時にStripeが発行）
@@ -34,9 +29,6 @@ export default {
     if (request.method === 'POST' && url.pathname === '/stripe/webhook') {
       return handleStripeWebhook(request, env);
     }
-    if (request.method === 'GET' && url.pathname === '/stock') {
-      return handleStock(url, env);
-    }
     if (request.method === 'GET' && url.pathname === '/health') {
       // 合言葉が実行環境から見えているかを true/false で示す（値そのものは出さない）
       // prices は wrangler.toml の [vars] が反映されているかの確認用。
@@ -50,16 +42,6 @@ export default {
         prices: {
           online: Boolean(env.PRICE_ONLINE),
           offline: Boolean(env.PRICE_OFFLINE),
-          spasub: Boolean(env.PRICE_SPASUB),
-        },
-        // 在庫管理の設定確認用。apiKey が false だと明細（個数）を取れず、1個として数える
-        stock: {
-          apiKey: {
-            live: Boolean(await readSecret(env, 'STRIPE_SECRET_KEY')),
-            test: Boolean(await readSecret(env, 'STRIPE_SECRET_KEY_TEST')),
-          },
-          paymentLink: Boolean(env.PAYMENT_LINK_SPASUB),
-          stripeApi: stripeApiBase(env),
         },
       });
     }
@@ -170,14 +152,6 @@ async function dispatch(event, env, ctx) {
         await upsertCustomer(env, customerId, email, object.customer_details?.name, ctx);
         if (email) await backfillEmail(env, customerId, email);
       }
-      // 都度購入（スパサブ）なら在庫を減らす
-      await recordPurchase(object, env, ctx);
-      return;
-    }
-
-    // 返金。全額返金なら在庫を戻す
-    case 'charge.refunded': {
-      await restoreStock(object, env, ctx);
       return;
     }
 
@@ -284,210 +258,17 @@ async function resolveEmail(env, customerId, ctx = {}) {
   const apiKey = await readSecret(env, ctx.isTest ? 'STRIPE_SECRET_KEY_TEST' : 'STRIPE_SECRET_KEY');
   if (!apiKey) return null;
 
-  const customer = await stripeGet(env, apiKey, `/v1/customers/${encodeURIComponent(customerId)}`);
-  if (!customer) {
-    console.error(`Stripeから顧客を取得できませんでした ${customerId}`);
+  const res = await fetch(`https://api.stripe.com/v1/customers/${encodeURIComponent(customerId)}`, {
+    headers: { Authorization: `Bearer ${apiKey}` },
+  });
+  if (!res.ok) {
+    console.error(`Stripeから顧客を取得できませんでした ${customerId}: ${res.status}`);
     return null;
   }
+  const customer = await res.json();
   const email = normalizeEmail(customer.email);
   if (email) await upsertCustomer(env, customerId, email, customer.name, ctx);
   return email;
-}
-
-/* =========================================================
-   在庫管理（スパサブなど、都度購入の商品）
-   ---------------------------------------------------------
-   ・決済完了（checkout.session.completed）で在庫を減らす
-   ・全額返金（charge.refunded）で在庫を戻す（一部返金は動かさない）
-   ・在庫が0になったら Stripe の支払いリンクを無効化する（直接URLからの購入も止める）
-   ・GET /stock で残数を返す（HPのSTOREページが読む）
-   本番とテストモードの在庫は別々に数える（inventory.is_test）。
-   ========================================================= */
-
-// 在庫を数える商品。増やすときはここと wrangler.toml の [vars]、schema.sql の初期在庫に追加する
-const STOCK_PRODUCTS = {
-  spasub: { priceVar: 'PRICE_SPASUB', linkVar: 'PAYMENT_LINK_SPASUB' },
-};
-
-async function handleStock(url, env) {
-  const isTest = url.searchParams.get('test') === '1' ? 1 : 0;
-  const { results } = await env.DB.prepare(
-    'SELECT product, stock, updated_at FROM inventory WHERE is_test = ?'
-  ).bind(isTest).all();
-
-  const products = {};
-  for (const row of results || []) {
-    products[row.product] = { stock: row.stock, soldOut: row.stock <= 0, updatedAt: row.updated_at };
-  }
-  // HP（b-core.space）は別ドメインなので、どこからでも読めるようにする。数字を返すだけなので公開して問題ない
-  return jsonResponse({ ok: true, test: isTest === 1, products }, 200, {
-    'access-control-allow-origin': '*',
-    'cache-control': 'no-store',
-  });
-}
-
-// 決済完了の通知から、在庫対象の商品を見つけて在庫を減らす
-async function recordPurchase(session, env, ctx = {}) {
-  // サブスク（ONLINE / OFFLINE）は在庫と無関係。都度購入（mode: payment）だけを見る
-  if (session.mode !== 'payment' || typeof session.id !== 'string') return;
-
-  const items = await purchasedItems(session, env, ctx);
-  if (items.length === 0) return;
-
-  const isTest = ctx.isTest ? 1 : 0;
-  const email = normalizeEmail(session.customer_details?.email || session.customer_email);
-  const paymentIntent = asId(session.payment_intent);
-
-  for (const { product, quantity } of items) {
-    // 同じ決済を二重に数えない（通知の再送や、処理失敗後のリトライ対策）
-    const orderId = `${session.id}:${product}`;
-    const exists = await env.DB.prepare('SELECT 1 FROM orders WHERE id = ?').bind(orderId).first();
-    if (exists) continue;
-
-    const now = nowSec();
-    // 注文の記録と在庫の減算を1つのトランザクションで行う（片方だけ成功、を防ぐ）
-    await env.DB.batch([
-      env.DB.prepare(`
-        INSERT INTO orders (id, product, quantity, email, payment_intent, status, is_test, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, 'paid', ?, ?, ?)
-      `).bind(orderId, product, quantity, email, paymentIntent, isTest, now, now),
-      // 在庫の行がまだ無ければ 0 として作る。マイナスにはしない
-      env.DB.prepare(`
-        INSERT INTO inventory (product, is_test, stock, updated_at) VALUES (?, ?, 0, ?)
-        ON CONFLICT(product, is_test) DO UPDATE SET
-          stock      = MAX(inventory.stock - ?, 0),
-          updated_at = excluded.updated_at
-      `).bind(product, isTest, now, quantity),
-    ]);
-
-    const stock = await getStock(env, product, isTest);
-    console.log(`在庫 ${product}: -${quantity} → 残り ${stock}${isTest ? '（テスト）' : ''}`);
-    if (stock === 0) await closePaymentLink(env, product, ctx);
-  }
-}
-
-// 決済に含まれる在庫対象の商品と個数を返す。例: [{ product: 'spasub', quantity: 2 }]
-async function purchasedItems(session, env, ctx) {
-  const apiKey = await readSecret(env, ctx.isTest ? 'STRIPE_SECRET_KEY_TEST' : 'STRIPE_SECRET_KEY');
-
-  // 本命: Stripeに明細（line_items）を問い合わせ、料金ID（price_xxx）で商品を見分けて個数を合計する
-  if (apiKey) {
-    const lines = await stripeGet(env, apiKey,
-      `/v1/checkout/sessions/${encodeURIComponent(session.id)}/line_items?limit=100`);
-    const totals = {};
-    for (const line of lines?.data || []) {
-      const product = productFromPrice(line.price?.id, env);
-      if (product) totals[product] = (totals[product] || 0) + (Number(line.quantity) || 1);
-    }
-    const found = Object.entries(totals).map(([product, quantity]) => ({ product, quantity }));
-    if (found.length > 0) return found;
-  }
-
-  // 予備: 支払いリンクのID（plink_xxx）で見分ける。個数は分からないので1個として数える
-  const product = productFromLink(asId(session.payment_link), env, ctx);
-  if (!product) return [];
-  console.warn(
-    `明細から商品を特定できなかったため、支払いリンクのIDから ${product} を1個として数えました（${session.id}）。` +
-    'まとめ買いだった場合は在庫を手で直してください（README「在庫管理」参照）'
-  );
-  return [{ product, quantity: 1 }];
-}
-
-// 全額返金されたら、その注文の分だけ在庫を戻す
-async function restoreStock(charge, env, ctx = {}) {
-  // refunded が true のときだけが全額返金。一部返金では在庫を動かさない
-  if (charge.refunded !== true) return;
-  const paymentIntent = asId(charge.payment_intent);
-  if (!paymentIntent) return;
-
-  const isTest = ctx.isTest ? 1 : 0;
-  const { results } = await env.DB.prepare(
-    "SELECT id, product, quantity FROM orders WHERE payment_intent = ? AND status = 'paid' AND is_test = ?"
-  ).bind(paymentIntent, isTest).all();
-
-  for (const order of results || []) {
-    const now = nowSec();
-    await env.DB.batch([
-      env.DB.prepare("UPDATE orders SET status = 'refunded', updated_at = ? WHERE id = ? AND status = 'paid'")
-        .bind(now, order.id),
-      env.DB.prepare('UPDATE inventory SET stock = stock + ?, updated_at = ? WHERE product = ? AND is_test = ?')
-        .bind(order.quantity, now, order.product, isTest),
-    ]);
-    console.log(`返金により在庫を戻しました ${order.product}: +${order.quantity}${isTest ? '（テスト）' : ''}`);
-  }
-}
-
-async function getStock(env, product, isTest) {
-  const row = await env.DB.prepare('SELECT stock FROM inventory WHERE product = ? AND is_test = ?')
-    .bind(product, isTest).first();
-  return row ? row.stock : null;
-}
-
-// 在庫が0になったら、Stripeの支払いリンクを無効化する（HPを経由しない直接URLからの購入も止める）
-// 再入荷したときは Stripeダッシュボードで手動で有効に戻す
-async function closePaymentLink(env, product, ctx) {
-  const linkId = paymentLinkId(env, product, ctx);
-  const apiKey = await readSecret(env, ctx.isTest ? 'STRIPE_SECRET_KEY_TEST' : 'STRIPE_SECRET_KEY');
-  if (!linkId || !apiKey) return;
-
-  // ここで失敗しても注文と在庫は記録済みなので、Stripeに再送させず記録だけ残す
-  try {
-    const res = await fetch(`${stripeApiBase(env)}/v1/payment_links/${encodeURIComponent(linkId)}`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${apiKey}`, 'content-type': 'application/x-www-form-urlencoded' },
-      body: 'active=false',
-    });
-    if (res.ok) console.log(`売り切れのため支払いリンク ${linkId} を無効化しました（${product}）`);
-    else console.error(`支払いリンク ${linkId} を無効化できませんでした: ${res.status}`);
-  } catch (err) {
-    console.error(`支払いリンク ${linkId} を無効化できませんでした:`, err?.message || err);
-  }
-}
-
-// 料金ID（price_xxx）→ 商品名。wrangler.toml の [vars] で対応付ける
-function productFromPrice(priceId, env) {
-  if (!priceId) return null;
-  for (const [product, cfg] of Object.entries(STOCK_PRODUCTS)) {
-    if (env[cfg.priceVar] && priceId === env[cfg.priceVar]) return product;
-  }
-  return null;
-}
-
-// 支払いリンクID（plink_xxx）→ 商品名
-function productFromLink(linkId, env, ctx) {
-  if (!linkId) return null;
-  for (const product of Object.keys(STOCK_PRODUCTS)) {
-    if (linkId === paymentLinkId(env, product, ctx)) return product;
-  }
-  return null;
-}
-
-// 本番とテストモードで支払いリンクは別物。テスト用は PAYMENT_LINK_xxx_TEST（任意）
-function paymentLinkId(env, product, ctx = {}) {
-  const name = STOCK_PRODUCTS[product]?.linkVar;
-  if (!name) return null;
-  const value = ctx.isTest ? env[`${name}_TEST`] : env[name];
-  return typeof value === 'string' && value.trim() ? value.trim() : null;
-}
-
-/* =========================================================
-   Stripe API（読み取り）
-   ========================================================= */
-
-// 通常は api.stripe.com。ローカルのテストで偽のAPIに向けるときだけ STRIPE_API_BASE を使う
-function stripeApiBase(env) {
-  const base = typeof env.STRIPE_API_BASE === 'string' ? env.STRIPE_API_BASE.trim() : '';
-  return (base || 'https://api.stripe.com').replace(/\/+$/, '');
-}
-
-// 失敗したら null（呼び出し側で予備の判定に進む）。ネットワーク断は例外のまま上げてStripeに再送させる
-async function stripeGet(env, apiKey, path) {
-  const res = await fetch(`${stripeApiBase(env)}${path}`, { headers: { Authorization: `Bearer ${apiKey}` } });
-  if (!res.ok) {
-    console.error(`Stripe API の呼び出しに失敗 ${path.split('?')[0]}: ${res.status}`);
-    return null;
-  }
-  return res.json();
 }
 
 /* =========================================================
@@ -557,9 +338,9 @@ function normalizeEmail(email) {
   return typeof email === 'string' && email.trim() ? email.trim().toLowerCase() : null;
 }
 
-function jsonResponse(body, status = 200, extraHeaders = {}) {
+function jsonResponse(body, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { 'content-type': 'application/json; charset=utf-8', ...extraHeaders },
+    headers: { 'content-type': 'application/json; charset=utf-8' },
   });
 }

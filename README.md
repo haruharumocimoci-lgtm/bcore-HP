@@ -62,7 +62,6 @@ node scripts/build-artifact.mjs
 
 - テストモード用のカスタマーポータル ログインリンク（`index.html` 冒頭の `STRIPE_TEST_PORTAL`）※本番は設定済み。`?test=1` で解約の流れも試したい場合のみ必要
 - STOREとCOACHの写真（現在はプレースホルダー表示）
-- スパサブの在庫管理の有効化（Stripe側のID設定が必要。`platform/README.md`「在庫管理」）
 
 ## 規約ページ
 
@@ -149,29 +148,6 @@ const STRIPE_TEST_LINKS = {
 - テスト用の `STRIPE_TEST_LINKS` は残しておいて問題ありません（`?test=1` のときしか使われません）
 
 > 手数料の目安: 国内カード決済 3.6%（例: 5,500円 → 約199円）。サーバー代・月額固定費はかかりません。
-
-## STOREの在庫表示（スパサブ）
-
-STOREページは、会員基盤（`platform/`、Cloudflare Worker）の `/stock` から残り個数を読んで表示を切り替えます。
-
-| 残り | 表示 |
-| --- | --- |
-| 51個以上 | 「購入する」ボタンのみ |
-| 50個以下 | ボタン + 赤字で「残り ◯ 個」 |
-| 0個 | 写真に「SOLD OUT」、ボタンは押せない「SOLD OUT」に変わる |
-
-在庫はStripeで購入されるたびに自動で減り、全額返金で戻ります。**手で数える必要はありません。**
-仕組みの詳細・在庫の補充・有効化の手順は `platform/README.md` の「在庫管理」を見てください。
-
-`index.html` 冒頭の関連設定:
-
-```js
-const STOCK_API = 'https://bcore-hp.haruharumocimoci.workers.dev/stock';  // 在庫を読む先
-const STOCK_LOW_THRESHOLD = 50;               // この数以下で「残り◯個」を出す
-const STORE_FORCE_SOLD_OUT = { spasub: false };  // true にすると在庫に関係なく SOLD OUT（緊急用）
-```
-
-在庫APIに繋がらないときは、これまで通り「購入する」ボタンが出ます（`STORE_FORCE_SOLD_OUT` だけは常に効きます）。
 
 ## 解約ボタン（お客さんが自分で解約できるようにする）
 

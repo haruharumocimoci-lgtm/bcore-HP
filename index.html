@@ -542,38 +542,6 @@ ul { list-style: none; }
   letter-spacing: .08em;
 }
 
-/* 在庫表示（残数は platform の /stock から自動取得） */
-.store__stock {
-  margin-top: 8px;
-  font-size: 12px;
-  letter-spacing: .1em;
-  color: #888;
-}
-.store__stock--low { color: #c0392b; font-weight: 700; }
-.store__soldout {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  font-weight: 800;
-  letter-spacing: .3em;
-  color: var(--white);
-  background: rgba(0, 0, 0, .45);
-}
-.store__item--soldout .ph__img { filter: grayscale(1); opacity: .6; }
-.store__item--soldout .store__price { color: #aaa; }
-.btn--disabled, .btn--disabled:hover {
-  background: var(--gray-mid);
-  color: #888;
-  border-color: var(--gray-mid);
-  cursor: default;
-  pointer-events: none;
-}
-.store__soldout[hidden], .store__stock[hidden], .store__btn[hidden] { display: none; }
-
 /* ===== PLACEHOLDER (photo slots) ===== */
 .ph {
   background:
@@ -1115,14 +1083,12 @@ ul { list-style: none; }
 
   <section class="section section--flush">
     <div class="store__grid">
-      <article class="store__item" data-product="spasub">
+      <article class="store__item">
         <div class="ph ph--square" data-ph="PRODUCT PHOTO">
           <img class="ph__img" src="images/product-spasub.jpg" alt="スパサブ" loading="lazy" onerror="this.remove()">
-          <span class="store__soldout" hidden>SOLD OUT</span>
         </div>
         <h3>スパサブ</h3>
         <p class="store__price">¥300<span>（税込）</span></p>
-        <p class="store__stock" hidden></p>
         <a href="#" class="btn btn--line store__btn" data-stripe="spasub" hidden>購入する</a>
       </article>
     </div>
@@ -1412,23 +1378,6 @@ const STRIPE_TEST_LINKS = {
 const STRIPE_PENDING_MSG = '申し込みフォームは準備中です。お手数ですがInstagramのDMからご連絡ください。';
 
 /* =========================================================
-   在庫表示（STOREページ）
-   ---------------------------------------------------------
-   platform（Cloudflare Worker）の /stock から残り個数を取り、
-   売り切れなら購入ボタンを「SOLD OUT」に切り替えます。
-   在庫は Stripe の決済完了で自動的に減るので、ここを手で触る必要はありません
-   （仕組みと在庫の補充方法は platform/README.md「在庫管理」）。
-   ?test=1 で開いたときはテストモードの在庫（本番とは別に数えている）を表示します。
-   ========================================================= */
-const STOCK_API = 'https://bcore-hp.haruharumocimoci.workers.dev/stock';
-const STOCK_LOW_THRESHOLD = 50;   // 残りがこの数以下になったら「残り◯個」を表示する
-
-// 緊急用: true にすると在庫の数に関係なく SOLD OUT 表示にする（Workerが止まったときなど）
-const STORE_FORCE_SOLD_OUT = {
-  spasub: false,
-};
-
-/* =========================================================
    Stripe カスタマーポータル設定（解約・お支払い情報の変更）
    ---------------------------------------------------------
    Stripeダッシュボード → 設定 →「カスタマーポータル」を開き、
@@ -1493,76 +1442,6 @@ const stripeLinks = stripeTestMode ? STRIPE_TEST_LINKS : STRIPE_LINKS;
     flag.textContent = 'Stripe テストモードで表示中 — 実際の課金は発生しません（テストカード 4242 4242 4242 4242）';
     document.body.appendChild(flag);
   }
-})();
-
-// 在庫表示（STOREページ）。Workerの /stock を読んで SOLD OUT / 残り◯個 を出す
-(function setupStock() {
-  const items = document.querySelectorAll('.store__item[data-product]');
-  if (!items.length) return;
-
-  function render(item, info) {
-    const product = item.dataset.product;
-    const soldOut = Boolean(STORE_FORCE_SOLD_OUT[product]) || Boolean(info && info.soldOut);
-    const btn = item.querySelector('.store__btn');
-    const badge = item.querySelector('.store__soldout');
-    const note = item.querySelector('.store__stock');
-
-    item.classList.toggle('store__item--soldout', soldOut);
-    if (badge) badge.hidden = !soldOut;
-
-    if (btn) {
-      // 元の表示を1度だけ覚えておく（在庫が戻ったときに購入ボタンへ戻せるように）
-      if (!btn.dataset.label) {
-        btn.dataset.label = btn.textContent;
-        btn.dataset.href = btn.getAttribute('href') || '';
-      }
-      if (soldOut) {
-        btn.textContent = 'SOLD OUT';
-        btn.classList.add('btn--disabled');
-        btn.setAttribute('aria-disabled', 'true');
-        btn.removeAttribute('href');
-        btn.hidden = false;
-      } else {
-        btn.textContent = btn.dataset.label;
-        btn.classList.remove('btn--disabled');
-        btn.removeAttribute('aria-disabled');
-        if (btn.dataset.href) btn.setAttribute('href', btn.dataset.href);
-      }
-    }
-
-    if (note) {
-      if (soldOut) {
-        note.textContent = '売り切れました。再入荷まで今しばらくお待ちください。';
-        note.classList.remove('store__stock--low');
-        note.hidden = false;
-      } else if (info && typeof info.stock === 'number' && info.stock <= STOCK_LOW_THRESHOLD) {
-        note.textContent = `残り ${info.stock} 個`;
-        note.classList.add('store__stock--low');
-        note.hidden = false;
-      } else {
-        note.hidden = true;
-      }
-    }
-  }
-
-  async function refresh() {
-    if (!STOCK_API) return;
-    try {
-      const res = await fetch(STOCK_API + (stripeTestMode ? '?test=1' : ''), { cache: 'no-store' });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      items.forEach(item => render(item, (data.products || {})[item.dataset.product] || null));
-    } catch (err) {
-      // 在庫APIに繋がらないときは購入ボタンをそのまま出しておく（強制SOLD OUTだけは反映する）
-      console.warn('在庫を取得できませんでした:', err && err.message);
-      items.forEach(item => render(item, null));
-    }
-  }
-
-  items.forEach(item => render(item, null)); // 強制SOLD OUTは通信を待たずに反映
-  refresh();
-  // STOREページを開き直したときは取り直す（別のタブで買われた分を反映）
-  window.addEventListener('hashchange', () => { if (location.hash === '#store') refresh(); });
 })();
 
 // 解約ボタン（Stripeカスタマーポータルへ）
