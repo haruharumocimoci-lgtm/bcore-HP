@@ -24,6 +24,30 @@
 
 > Pagesの配信元にしているブランチを削除すると公開が止まります。ブランチ名を変える場合は Settings → Pages の設定も合わせて変更してください。
 
+### サイトが見られなくなったとき（2026-09 の障害から）
+
+サイトのファイルは GitHub にあり、ドメイン `b-core.space` がそこを向いていないと見られません。
+過去に起きた原因と直し方:
+
+| 症状 | 原因 | 直し方 |
+| --- | --- | --- |
+| 業者のパーキング画面／接続できない。ネームサーバーが `failed-whois-verification.namecheap.com` | ドメイン取得後15日以内の **登録者メール認証（ICANN）** が未完了で Namecheap が停止 | 「Action required: Verify your contact information」というメールのリンクを押す。届いていなければ Namecheap の Domain List から再送 |
+| リダイレクトが繰り返される／Error 525・526 | Cloudflare のプロキシ（オレンジ雲）を通っていて SSL 設定が合わない | 下の「正しい DNS」のとおりプロキシをオフにする |
+| Error 522・1016／Not found | DNS の向き先が GitHub ではない（Worker など） | 下の「正しい DNS」に戻す |
+| GitHub の 404 ページ | GitHub がドメインを認識していない | Settings → Pages → Custom domain に `b-core.space` を入れ直して Save |
+
+**正しい DNS**（Cloudflare でも Namecheap でも同じ）
+
+```
+CNAME  @    haruharumocimoci-lgtm.github.io
+CNAME  www  haruharumocimoci-lgtm.github.io
+```
+
+- Cloudflare を使う場合、両方の行の **プロキシ（オレンジ雲）はオフ = DNS only（グレー）** にする。
+  GitHub Pages が自前で証明書を出すため、Cloudflare を挟むと証明書まわりのエラーが起きやすい。
+- 直したら GitHub の Settings → Pages で「Check again」を押し、緑になったら **Enforce HTTPS** にチェック。
+- 確認コマンド（向き先が `185.199.108〜111.153` の4つになっていれば正常）: `nslookup b-core.space`
+
 ## ファイル構成
 
 | パス | 役割 |
