@@ -24,6 +24,30 @@
 
 > Pagesの配信元にしているブランチを削除すると公開が止まります。ブランチ名を変える場合は Settings → Pages の設定も合わせて変更してください。
 
+### サイトが見られなくなったとき（2026-09 の障害から）
+
+サイトのファイルは GitHub にあり、ドメイン `b-core.space` がそこを向いていないと見られません。
+過去に起きた原因と直し方:
+
+| 症状 | 原因 | 直し方 |
+| --- | --- | --- |
+| 業者のパーキング画面／接続できない。ネームサーバーが `failed-whois-verification.namecheap.com` | ドメイン取得後15日以内の **登録者メール認証（ICANN）** が未完了で Namecheap が停止 | 「Action required: Verify your contact information」というメールのリンクを押す。届いていなければ Namecheap の Domain List から再送 |
+| リダイレクトが繰り返される／Error 525・526 | Cloudflare のプロキシ（オレンジ雲）を通っていて SSL 設定が合わない | 下の「正しい DNS」のとおりプロキシをオフにする |
+| Error 522・1016／Not found | DNS の向き先が GitHub ではない（Worker など） | 下の「正しい DNS」に戻す |
+| GitHub の 404 ページ | GitHub がドメインを認識していない | Settings → Pages → Custom domain に `b-core.space` を入れ直して Save |
+
+**正しい DNS**（Cloudflare でも Namecheap でも同じ）
+
+```
+CNAME  @    haruharumocimoci-lgtm.github.io
+CNAME  www  haruharumocimoci-lgtm.github.io
+```
+
+- Cloudflare を使う場合、両方の行の **プロキシ（オレンジ雲）はオフ = DNS only（グレー）** にする。
+  GitHub Pages が自前で証明書を出すため、Cloudflare を挟むと証明書まわりのエラーが起きやすい。
+- 直したら GitHub の Settings → Pages で「Check again」を押し、緑になったら **Enforce HTTPS** にチェック。
+- 確認コマンド（向き先が `185.199.108〜111.153` の4つになっていれば正常）: `nslookup b-core.space`
+
 ## ファイル構成
 
 | パス | 役割 |
@@ -62,6 +86,7 @@ node scripts/build-artifact.mjs
 
 - テストモード用のカスタマーポータル ログインリンク（`index.html` 冒頭の `STRIPE_TEST_PORTAL`）※本番は設定済み。`?test=1` で解約の流れも試したい場合のみ必要
 - STOREとCOACHの写真（現在はプレースホルダー表示）
+- スパサブのサイズ別 支払いリンク（`index.html` 冒頭の `spasub_s` / `spasub_m` / `spasub_l`）※下の「スパサブのサイズと在庫」参照
 
 ## 規約ページ
 
@@ -107,11 +132,15 @@ https://dashboard.stripe.com → 「商品カタログ」→「商品を追加�
 
 ```js
 const STRIPE_LINKS = {
-  online:  'https://buy.stripe.com/xxxxxxxx',   // ONLINE  ¥5,500/月
-  offline: 'https://buy.stripe.com/yyyyyyyy',   // OFFLINE ¥9,900/月
-  spasub:  ''                                   // スパサブ ¥300（未設定なら購入ボタン非表示）
+  online:   'https://buy.stripe.com/xxxxxxxx',  // ONLINE  ¥5,500/月
+  offline:  'https://buy.stripe.com/yyyyyyyy',  // OFFLINE ¥9,900/月
+  spasub_s: '',                                 // スパサブ S（サイズごとに別リンク）
+  spasub_m: '',                                 // スパサブ M
+  spasub_l: ''                                  // スパサブ L
 };
 ```
+
+スパサブはサイズごとに支払いリンクを分けます（次の「スパサブのサイズと在庫」を参照）。
 
 貼って push すると、PRICEページとJOINページの申し込みボタンがStripeの決済ページに繋がります。
 空のままの項目は今まで通り「準備中」の案内が出るだけなので、片方だけ先に公開しても問題ありません。
@@ -148,6 +177,63 @@ const STRIPE_TEST_LINKS = {
 - テスト用の `STRIPE_TEST_LINKS` は残しておいて問題ありません（`?test=1` のときしか使われません）
 
 > 手数料の目安: 国内カード決済 3.6%（例: 5,500円 → 約199円）。サーバー代・月額固定費はかかりません。
+
+## スパサブのサイズと在庫（各185個）
+
+スパサブは STORE ページで **S / M / L を選んでから「購入する」** を押す形です。
+選んだサイズの決済ページが開きます。
+
+**在庫を止めるのは Stripe 側の設定です。** サイズごとに支払いリンクを分けているので、
+リンクごとに上限をかければ「各サイズ185個まで」が実現できます。
+
+### 1. Stripeでサイズごとに支払いリンクを作る
+
+「商品カタログ」でスパサブを **S / M / L の3つの商品**（または1商品に3つの料金）として用意し、
+それぞれに支払いリンクを作ります。各リンクの「編集」→「詳細オプション」で:
+
+| 設定 | 値 | 理由 |
+| --- | --- | --- |
+| 支払い件数を制限する | **オン / 185** | 185件売れた時点でStripeがリンクを自動で無効化します |
+| 数量（顧客が数量を調整できる） | **オフ** | オンだと1回の決済で複数個買われ、185個を超えてしまいます |
+| 無効時のメッセージ | 「Sサイズは完売しました」など（任意） | 未設定ならStripe標準の案内が出ます |
+
+> 上限は**リンク単位**で数えます。1つのリンクの中でサイズを選ばせる形にすると、
+> 「各サイズ185」ではなく「全体で555」になってしまうため、リンクを3本に分けています。
+
+### 2. サイトに貼る
+
+`index.html` 冒頭の `STRIPE_LINKS` に、発行された3本のURLを貼ります。
+
+```js
+spasub_s: 'https://buy.stripe.com/xxxxxxxx',   // スパサブ S（上限185）
+spasub_m: 'https://buy.stripe.com/yyyyyyyy',   // スパサブ M（上限185）
+spasub_l: 'https://buy.stripe.com/zzzzzzzz'    // スパサブ L（上限185）
+```
+
+空のままのサイズはボタンに出ません。3つとも空なら、これまで通りSTOREに購入ボタンは出ません。
+先に S だけ公開する、といった使い方もできます。
+
+### 3. 売り切れたサイズをサイトからも消す
+
+Stripeが上限に達したリンクを無効化しても、サイトのボタンは残ります（押すとStripeの「利用できません」が出ます）。
+売り切れをサイトにも反映するには、`index.html` の `SPASUB_SOLD_OUT` を書き換えて push します。
+
+```js
+const SPASUB_SOLD_OUT = {
+  s: false,
+  m: true,    // ← Mが売り切れたら true
+  l: false
+};
+```
+
+| 状態 | 表示 |
+| --- | --- |
+| 全サイズ販売中 | S / M / L が選べて「購入する」 |
+| 一部が売り切れ | そのサイズは選べなくなり（取り消し線）、「Mサイズは売り切れです」と表示 |
+| 全サイズ売り切れ | 写真に「SOLD OUT」、ボタンは押せない「SOLD OUT」に変わる |
+
+残り件数は Stripe の支払いリンク詳細ページで確認できます。
+再入荷したら、Stripeで上限を増やして「有効にする」で戻し、`SPASUB_SOLD_OUT` を `false` に戻してください。
 
 ## 解約ボタン（お客さんが自分で解約できるようにする）
 
