@@ -608,6 +608,50 @@ ul { list-style: none; }
   letter-spacing: .08em;
   color: #888;
 }
+
+/* サイズの目安（選択中のサイズを強調する） */
+.store__sizechart {
+  margin-top: 14px;
+  width: 100%;
+  max-width: 260px;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.store__sizechart caption {
+  text-align: left;
+  padding-bottom: 6px;
+  font-size: 11px;
+  color: #888;
+  letter-spacing: .06em;
+}
+.store__sizechart th,
+.store__sizechart td {
+  padding: 7px 10px;
+  border-bottom: 1px solid #eee;
+  text-align: left;
+  letter-spacing: .06em;
+}
+.store__sizechart th { width: 62px; font-weight: 700; }
+.store__sizechart td { color: #555; }
+.store__sizechart tr.is-selected th,
+.store__sizechart tr.is-selected td {
+  background: #f2f2f2;
+  color: var(--black);
+  font-weight: 700;
+}
+
+/* 素材などの商品詳細 */
+.store__spec {
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 1px solid var(--gray-mid);
+  display: grid;
+  grid-template-columns: 62px 1fr;
+  row-gap: 8px;
+  font-size: 12px;
+}
+.store__spec dt { font-weight: 700; letter-spacing: .08em; }
+.store__spec dd { color: #555; line-height: 1.7; }
 .btn--disabled, .btn--disabled:hover {
   background: var(--gray-mid);
   color: #888;
@@ -1171,11 +1215,23 @@ ul { list-style: none; }
           <button type="button" class="store__size" data-size="m">M</button>
           <button type="button" class="store__size" data-size="l">L</button>
         </div>
+        <table class="store__sizechart">
+          <caption>サイズの目安（測定位置：手のひらの長さ）</caption>
+          <tbody>
+            <tr data-size-row="s"><th scope="row">S</th><td>18.5 〜 20 cm</td></tr>
+            <tr data-size-row="m"><th scope="row">M</th><td>19 〜 21 cm</td></tr>
+            <tr data-size-row="l"><th scope="row">L</th><td>20 〜 22 cm</td></tr>
+          </tbody>
+        </table>
         <p class="store__size-note" hidden></p>
         <a href="#" class="btn btn--line store__btn" hidden>購入する</a>
+        <dl class="store__spec">
+          <dt>素材</dt>
+          <dd>手のひら：合成皮革<br>手の甲：ポリエステル</dd>
+        </dl>
       </article>
     </div>
-    <p class="store__note" id="storeNote">※ 商品は今後追加予定。購入方法はお問い合わせください。</p>
+    <p class="store__note" id="storeNote">※ 購入方法についてはお問い合わせください。</p>
   </section>
 
   <nav class="page-next">
@@ -1551,7 +1607,7 @@ const stripeLinks = stripeTestMode ? STRIPE_TEST_LINKS : STRIPE_LINKS;
 
   const storeNote = document.getElementById('storeNote');
   if (storeNote && SPASUB_SIZES.some(size => stripeLinks['spasub_' + size.key])) {
-    storeNote.textContent = '※ サイズをお選びのうえ購入ボタンを押してください。サイズごとに決済ページが分かれています。商品は今後追加予定です。';
+    storeNote.textContent = '※ サイズをお選びのうえ購入ボタンを押してください。サイズごとに決済ページが分かれています。';
   }
 
   // テスト用リンクで表示していることを画面上でも分かるようにする
@@ -1570,6 +1626,7 @@ const stripeLinks = stripeTestMode ? STRIPE_TEST_LINKS : STRIPE_LINKS;
 
   const sizeBox   = item.querySelector('.store__sizes');
   const sizeLabel = item.querySelector('.store__size-label');
+  const chartRows = item.querySelectorAll('.store__sizechart tr[data-size-row]');
   const buttons = item.querySelectorAll('.store__size');
   const note    = item.querySelector('.store__size-note');
   const badge   = item.querySelector('.store__soldout');
@@ -1601,6 +1658,7 @@ const stripeLinks = stripeTestMode ? STRIPE_TEST_LINKS : STRIPE_LINKS;
 
     sizeBox.hidden = false;
     if (sizeLabel) sizeLabel.hidden = false;
+    chartRows.forEach(row => row.classList.toggle('is-selected', row.dataset.sizeRow === selected));
     item.classList.toggle('store__item--soldout', selected === null);
     badge.hidden = selected !== null;
 
