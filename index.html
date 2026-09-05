@@ -661,6 +661,22 @@ ul { list-style: none; }
 }
 .store__soldout[hidden], .store__sizes[hidden], .store__size-label[hidden], .store__size-note[hidden], .store__btn[hidden] { display: none; }
 
+/* 受付停止中のプラン（PRICE / JOIN） */
+.plan__pending, .join__plan .plan__pending {
+  margin-top: 12px;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: .08em;
+  line-height: 1.7;
+  color: #888;
+}
+.join__plan .plan__pending { max-width: 220px; }
+.price__card--main .btn--disabled, .join__plan .btn--disabled {
+  background: transparent;
+  color: #777;
+  border-color: #444;
+}
+
 /* ===== PLACEHOLDER (photo slots) ===== */
 .ph {
   background:
@@ -1524,6 +1540,21 @@ const STRIPE_TEST_LINKS = {
 const STRIPE_PENDING_MSG = '申し込みフォームは準備中です。お手数ですがInstagramのDMからご連絡ください。';
 
 /* =========================================================
+   プランごとの受付状態（ONLINE / OFFLINE）
+   ---------------------------------------------------------
+   false にしたプランは、PRICEページ・JOINページの申し込みボタンが「受付準備中」になり押せなくなります
+   （Stripeの支払いリンクは貼ったままでOK。決済ページには一切飛びません）。
+   受付を始めるときは true に変えて push するだけです。
+   ========================================================= */
+const PLAN_ON_SALE = {
+  online:  true,
+  offline: false    // OFFLINEは受付開始まで false のまま
+};
+
+const PLAN_PENDING_LABEL = '受付準備中';
+const PLAN_PENDING_NOTE  = 'OFFLINEプランの受付は準備中です。開始まで今しばらくお待ちください。';
+
+/* =========================================================
    スパサブのサイズ（STOREページ）
    ---------------------------------------------------------
    S / M / L から選んで「購入する」を押すと、そのサイズの決済ページが開きます。
@@ -1585,7 +1616,23 @@ const stripeLinks = stripeTestMode ? STRIPE_TEST_LINKS : STRIPE_LINKS;
 
 (function setupStripeLinks() {
   document.querySelectorAll('[data-stripe]').forEach(el => {
-    const url = stripeLinks[el.dataset.stripe];
+    const key = el.dataset.stripe;
+
+    // 受付停止中のプラン: ボタンを押せなくして「受付準備中」の案内を出す
+    if (PLAN_ON_SALE[key] === false) {
+      el.textContent = PLAN_PENDING_LABEL;
+      el.classList.add('btn--disabled');
+      el.setAttribute('aria-disabled', 'true');
+      el.removeAttribute('href');
+      el.removeAttribute('data-nav');
+      const note = document.createElement('p');
+      note.className = 'plan__pending';
+      note.textContent = PLAN_PENDING_NOTE;
+      el.parentNode.insertBefore(note, el);
+      return;
+    }
+
+    const url = stripeLinks[key];
     if (url) {
       el.setAttribute('href', url);
       el.setAttribute('rel', 'noopener');
