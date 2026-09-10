@@ -11,14 +11,14 @@
 | 解約ポータル（カスタマーポータル） | ✅ 設定済み・動作確認済み |
 | プラン価格ID（`plan` 欄への記録） | ✅ 設定済み（`/health` の `prices` で反映を確認できる） |
 | 解約ルール（いつでも解約可・期間末日まで利用可・返金なし） | ✅ 反映済み |
-| Webhook受信Worker | ✅ 公開・動作確認済み |
-| 会員データベース（Cloudflare D1 `bcore-members`） | ✅ 記録を確認 |
-| 本番の会員 | 🟢 1件（2026-08-28 ONLINE ¥5,500） |
+| Webhook受信Worker | ⚠️ 稼働中だが**本番モードのイベントが1件も届いていない**（A-5） |
+| 会員データベース（Cloudflare D1 `bcore-members`） | ⚠️ テストモードの記録のみ（本番 0件） |
+| 本番の会員 | 0件（8/28に1件申し込み → 解約済み。ただしD1には未記録） |
 | 講義プラットフォーム | ⬜ 未着手 |
 
 公開URL: https://bcore-hp.haruharumocimoci.workers.dev
 - `/health` … 合言葉が届いているかを確認できる
-- `/stripe/webhook` … Stripeに登録済み（本番・テスト両モード）
+- `/stripe/webhook` … テストモードのみ登録済み。**本番モードは `example.com` を向いたまま（A-5）**
 
 > シークレットは Cloudflare の「変数とシークレット」（ビルド側）に入れ、
 > デプロイコマンドの末尾で `wrangler secret put` して実行環境へコピーしている。
@@ -40,8 +40,8 @@
 ここは追いかけなくてよい。
 本物の申し込みは `checkout.session.completed` で email が入る。
 
-> 📌 2026-08-28、**本番の初申し込みが入った**（ONLINE ¥5,500 / `cus_V9YG3H3s81mqfU`）。
-> 以降は本番データ（`is_test = 0`）が混ざるので、A-4 の削除は `is_test = 1` 限定であることを必ず確認すること。
+> 📌 2026-08-28 に本番の申し込みが1件あった（ONLINE ¥5,500 / `cus_V9YG3H3s81mqfU`）が、**現在は解約済み**。
+> なお、この申し込みは A-5 の設定ミスにより D1 に記録されていない。
 
 ### A-2. プランの価格IDを設定する ✅ 完了
 
@@ -72,10 +72,11 @@ PRICE_OFFLINE = "price_1U5xPOAZRcjZV00NHLzLpy6l"   # OFFLINE ¥9,900/月
 
 （ONLINE支払いリンクと末尾トークンが同一だったのは偶然。両方とも正しいリンク）
 
-### A-4. テストデータを消す ⚠️ 要対応（優先度：高）
+### A-4. テストデータを消す（本番運用の前に）
 
-**本番の会員が入った後もテストデータが残ったまま。** 本番と混ざって見えるので早めに消す。
-`is_test = 1` だけを消すこと（`is_test = 0` は本物の会員）。
+現在 D1 に入っているのは全件テストモード（`customers` 4件 / `subscriptions` 3件 /
+`webhook_events` 10件、すべて `is_test = 1`）。本番運用を始める前に消しておく。
+念のため `is_test = 1` 限定であることを確認してから実行すること。
 
 ```sql
 DELETE FROM subscriptions WHERE is_test = 1;
@@ -83,22 +84,63 @@ DELETE FROM customers     WHERE is_test = 1;
 DELETE FROM webhook_events WHERE is_test = 1;
 ```
 
-### A-5. Stripeに残っている `example.com` のWebhook登録を削除する ⚠️ 要対応
+### A-5. 本番モードのWebhook登録が `example.com` のまま 🔴 最優先
+
+**これが最大の問題。本番の決済がシステムに一切反映されていない。**
 
 Stripeから「Webhook の配信に関する問題」メールが繰り返し届いている（8/31、9/10）。
-失敗しているのは実在しないプレースホルダーURL:
+失敗しているURLはこれ:
 
 ```
-https://example.com/api/stripe/webhook
+https://example.com/api/stripe/webhook   ← 実在しないプレースホルダー
 ```
 
-本物のエンドポイント（`https://bcore-hp.haruharumocimoci.workers.dev/stripe/webhook`）は
-8/24 のエラーを最後に失敗メールが止まっており、正常に動いている。
-つまり **`example.com` の登録が消し忘れで残っているだけ**なので、
-Stripeダッシュボードの「開発者」→「Webhook」から削除すれば失敗メールは止まる。
+当初これは「消し忘れの残骸」だと考えたが、**D1を調べたところ違った。**
 
-- 削除先: <https://dashboard.stripe.com/b/acct_1U5M8JAZRcjZV00N?destination=%2Fwebhooks>
-- 放置した場合、Stripe側が 2026-09-16 に自動で配信を停止する（実害はないがメールが届き続ける）
+| 確認したこと | 結果 |
+| --- | --- |
+| `subscriptions` の本番レコード（`is_test = 0`） | **0件** |
+| `webhook_events` の本番レコード | **0件** |
+| 最後に届いたイベント | 2026-08-28 01:28:50 UTC（テストモード） |
+| 実際の本番決済 | 2026-08-28 02:05:58 UTC |
+
+本番決済の約37分**前**を最後に、本番モードのイベントは一度も Worker に届いていない。
+つまり `example.com` は残骸ではなく、**現役の本番モード用エンドポイント登録**であり、
+本番イベントはすべてそこへ送られて失敗している。
+
+#### やること（Stripeダッシュボード）
+
+<https://dashboard.stripe.com/b/acct_1U5M8JAZRcjZV00N?destination=%2Fwebhooks>
+
+1. 画面右上が「**本番環境**」（テスト環境ではない）になっていることを確認
+2. `https://example.com/api/stripe/webhook` の登録を開く
+3. URLを本物のエンドポイントに**書き換える**（消すだけでは本番Webhookが無くなるので不可）
+   ```
+   https://bcore-hp.haruharumocimoci.workers.dev/stripe/webhook
+   ```
+4. 送信するイベントに以下が含まれていることを確認
+   - `checkout.session.completed`
+   - `customer.subscription.created`
+   - `customer.subscription.updated`
+   - `customer.subscription.deleted`
+5. 表示される**署名シークレット（`whsec_...`）をコピー**し、本番用として登録し直す
+   ```
+   npx wrangler secret put STRIPE_WEBHOOK_SECRET
+   ```
+   > ⚠️ URLを変えると署名シークレットも変わる。ここを忘れると
+   > 今度は署名検証で全部 401 になる。
+   > このプロジェクトはシークレットをCloudflare側の「変数とシークレット」に
+   > 置いて再ビルド時にコピーする仕組みなので、**変更後は再ビルドが必要**。
+6. 反映確認は `/health` の `secrets.live` が `true` であること、
+   その後テスト送信して D1 の `webhook_events` に `is_test = 0` の行が入ること
+
+放置した場合、Stripeは 2026-09-16 0:05 UTC にこのエンドポイントへの配信を停止する。
+
+#### 8/28 の申し込みの扱い
+
+すでに解約済みなので、データを遡って入れる必要はない。
+記録を残したい場合のみ、Stripeの「開発者」→「Webhook」→「イベントの配信」から
+該当イベントを再送信する（A-1 と同じ操作）。
 
 ---
 
