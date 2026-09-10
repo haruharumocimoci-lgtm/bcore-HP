@@ -120,9 +120,17 @@ async function handleStripeWebhook(request, env) {
   }
 
   // 同じイベントが再送されても二重処理しない
-  const first = await env.DB.prepare(
-    'INSERT OR IGNORE INTO webhook_events (id, type, is_test, received_at) VALUES (?, ?, ?, ?)'
-  ).bind(event.id, event.type, event.livemode === false ? 1 : 0, nowSec()).run();
+  let first;
+  try {
+    first = await env.DB.prepare(
+      'INSERT OR IGNORE INTO webhook_events (id, type, is_test, received_at) VALUES (?, ?, ?, ?)'
+    ).bind(event.id, event.type, event.livemode === false ? 1 : 0, nowSec()).run();
+  } catch (err) {
+    // データベースに触れないときは、理由を残したうえで500を返しStripeに再送させる
+    // （握りつぶすと会員の記録が欠けたまま「成功」扱いになってしまう）
+    console.error(`webhook_events への記録に失敗 ${event.type} (${event.id}):`, err?.stack || err);
+    return jsonResponse({ error: 'database unavailable' }, 500);
+  }
 
   if (!first.meta?.changes) {
     return jsonResponse({ received: true, duplicate: true });
@@ -147,7 +155,8 @@ async function dispatch(event, env, ctx) {
     // 決済完了。ここで初めてメールアドレスが分かる
     case 'checkout.session.completed': {
       const customerId = asId(object.customer);
-      const email = object.customer_details?.email || object.customer_email;
+      // subscriptions.email は入室チェックの照合先。customers 側と同じく必ず小文字で揃える
+      const email = normalizeEmail(object.customer_details?.email || object.customer_email);
       if (customerId) {
         await upsertCustomer(env, customerId, email, object.customer_details?.name, ctx);
         if (email) await backfillEmail(env, customerId, email);
