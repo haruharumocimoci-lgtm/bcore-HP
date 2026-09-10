@@ -1,6 +1,6 @@
 # 次にやること（引き継ぎメモ）
 
-最終更新: 2026-08-30
+最終更新: 2026-09-10
 
 ## いまの状態
 
@@ -13,6 +13,7 @@
 | 解約ルール（いつでも解約可・期間末日まで利用可・返金なし） | ✅ 反映済み |
 | Webhook受信Worker | ✅ 公開・動作確認済み |
 | 会員データベース（Cloudflare D1 `bcore-members`） | ✅ 記録を確認 |
+| 本番の会員 | 🟢 1件（2026-08-28 ONLINE ¥5,500） |
 | 講義プラットフォーム | ⬜ 未着手 |
 
 公開URL: https://bcore-hp.haruharumocimoci.workers.dev
@@ -35,9 +36,12 @@
 > ⚠️ Stripe画面の 200 は「処理して成功」と「重複なので飛ばした」の区別がつかない。
 > 反映されたかどうかは D1 の中身で確認すること。
 
-ただし現在のデータは全件テストモード（`is_test = 1`）で、A-4 でどのみち消す。
-本番の会員はまだ0件なので、ここは追いかけなくてよい。
-これから来る本物の申し込みは `checkout.session.completed` で email が入る。
+ただし当時のデータは全件テストモード（`is_test = 1`）で、A-4 でどのみち消す。
+ここは追いかけなくてよい。
+本物の申し込みは `checkout.session.completed` で email が入る。
+
+> 📌 2026-08-28、**本番の初申し込みが入った**（ONLINE ¥5,500 / `cus_V9YG3H3s81mqfU`）。
+> 以降は本番データ（`is_test = 0`）が混ざるので、A-4 の削除は `is_test = 1` 限定であることを必ず確認すること。
 
 ### A-2. プランの価格IDを設定する ✅ 完了
 
@@ -68,12 +72,33 @@ PRICE_OFFLINE = "price_1U5xPOAZRcjZV00NHLzLpy6l"   # OFFLINE ¥9,900/月
 
 （ONLINE支払いリンクと末尾トークンが同一だったのは偶然。両方とも正しいリンク）
 
-### A-4. テストデータを消す（本番運用の前に）
+### A-4. テストデータを消す ⚠️ 要対応（優先度：高）
+
+**本番の会員が入った後もテストデータが残ったまま。** 本番と混ざって見えるので早めに消す。
+`is_test = 1` だけを消すこと（`is_test = 0` は本物の会員）。
+
 ```sql
 DELETE FROM subscriptions WHERE is_test = 1;
 DELETE FROM customers     WHERE is_test = 1;
 DELETE FROM webhook_events WHERE is_test = 1;
 ```
+
+### A-5. Stripeに残っている `example.com` のWebhook登録を削除する ⚠️ 要対応
+
+Stripeから「Webhook の配信に関する問題」メールが繰り返し届いている（8/31、9/10）。
+失敗しているのは実在しないプレースホルダーURL:
+
+```
+https://example.com/api/stripe/webhook
+```
+
+本物のエンドポイント（`https://bcore-hp.haruharumocimoci.workers.dev/stripe/webhook`）は
+8/24 のエラーを最後に失敗メールが止まっており、正常に動いている。
+つまり **`example.com` の登録が消し忘れで残っているだけ**なので、
+Stripeダッシュボードの「開発者」→「Webhook」から削除すれば失敗メールは止まる。
+
+- 削除先: <https://dashboard.stripe.com/b/acct_1U5M8JAZRcjZV00N?destination=%2Fwebhooks>
+- 放置した場合、Stripe側が 2026-09-16 に自動で配信を停止する（実害はないがメールが届き続ける）
 
 ---
 
