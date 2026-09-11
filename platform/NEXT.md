@@ -14,7 +14,7 @@
 | Webhook受信Worker | ⚠️ Worker自体は正常。ただし**本番モードの通知が一度も届いていない**（0-1参照） |
 | 会員データベース（Cloudflare D1 `bcore-members`） | ⚠️ テストモードの記録のみ（本番0件） |
 | 講義プラットフォーム | ⬜ 未着手 |
-| 本番の会員 | Stripe上は1件（2026-08-28・ONLINE ¥5,500）。**D1には未記録** |
+| 本番の会員 | 0件（2026-08-28 の1件は払い戻し済み）|
 
 公開URL: https://bcore-hp.haruharumocimoci.workers.dev
 - `/health` … 合言葉が届いているかを確認できる
@@ -59,8 +59,10 @@ Stripeの失敗メールの時刻と突き合わせると、原因がはっき�
 | 08-31 / 09-10 | 失敗メール。9/7以降だけで17回失敗。9/16 にStripeが送信を停止する |
 
 つまり **最初の本番申し込みの通知は、ダミードメインに送られて失われた。**
-支払いと入金はStripe側で正常に完了しているので、お金の問題はない。
-壊れているのは「誰が有効な会員か」の記録だけ。
+
+この1件そのものは実害がない（後日 払い戻し済みのため、D1に記録が無いのが正しい）。
+問題は、**この先の本物の申し込みも同じように失われる**こと。
+送信先がダミードメインのままなので、入金はされても会員として記録されない。
 
 > テストモードの通知は正常に届いていた（10件）。
 > そのため `/health` やテストでは異常に見えず、見逃されていた。
@@ -77,19 +79,30 @@ Stripeの失敗メールの時刻と突き合わせると、原因がはっき�
 4. `https://bcore-hp.haruharumocimoci.workers.dev/health` を開き
    `"secrets":{"live":true}` になっていることを確認
 5. `https://example.com/api/stripe/webhook` のエンドポイントを削除（「…」→ 削除）
-6. 「開発者」→「イベント」から **2026-08-28 の本番イベント**を選び、
-   新しいエンドポイントへ再送信する
-   （`checkout.session.completed` と `customer.subscription.created` の2つ）
-   ※ 再送信できるのは発生から30日以内。**2026-09-27 が期限**
-7. D1 に入ったことを確認する
+6. テストモードで1件申し込んでみて、`is_test = 1` の記録が増えることを確認する
 
 ```sh
 npx wrangler d1 execute bcore-members --remote \
-  --command "SELECT email, plan, status, current_period_end FROM subscriptions WHERE is_test = 0;"
+  --command "SELECT MAX(received_at) FROM webhook_events WHERE is_test = 0;"
 ```
 
-> 手順6を逃した場合でも、次回の請求（`customer.subscription.updated`）が届けば
-> 会員として記録される。ただしそれまでは入室チェックを通らない。
+#### 8/28 のイベントは再送信しないこと ⛔
+
+失われた 2026-08-28 の申し込み（`cus_V9YG3H3s81mqfU`）は、**すでに払い戻し済み**。
+したがって D1 に記録がないのは正しい状態であり、追いかける必要はない。
+
+むしろ `checkout.session.completed` と `customer.subscription.created` を
+再送信すると、**払い戻した相手が `status = 'active'` で登録されてしまう**。
+入室チェックはこの1行で判定するため、幽霊会員が講義に入れることになる。
+
+```sql
+SELECT 1 FROM subscriptions
+WHERE email = ? AND status IN ('active','trialing') AND is_test = 0;
+```
+
+> ⚠️ 払い戻し（refund）はサブスクリプション自体を止めない。
+> Stripeで契約が `canceled` になっているかは別途確認すること。
+> `active` のままだと次の請求日にまた課金される。
 
 ### 0-2. 受信Workerの修正 ✅ 対応済み
 
@@ -126,7 +139,7 @@ npx wrangler d1 execute bcore-members --remote \
 
 ただしここで扱ったデータは全件テストモード（`is_test = 1`）で、A-4 でどのみち消す。
 
-> 2026-08-28 に本番モードの申し込みが1件入っているが、D1には届いていない。0-1 を参照。
+> 2026-08-28 の本番申し込みはD1に届いていないが、払い戻し済みのため追う必要はない。0-1 を参照。
 
 ### A-2. プランの価格IDを設定する ✅ 完了
 
