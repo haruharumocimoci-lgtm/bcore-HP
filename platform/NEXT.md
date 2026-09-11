@@ -11,14 +11,14 @@
 | 解約ポータル（カスタマーポータル） | ✅ 設定済み・動作確認済み |
 | プラン価格ID（`plan` 欄への記録） | ✅ 設定済み（`/health` の `prices` で反映を確認できる） |
 | 解約ルール（いつでも解約可・期間末日まで利用可・返金なし） | ✅ 反映済み |
-| Webhook受信Worker | ⚠️ Worker自体は正常。ただし本番の通知は bcoreform.com が受けており、この Worker には届いていない（0-1参照） |
-| 会員データベース（Cloudflare D1 `bcore-members`） | ⚠️ テストモードの記録のみ（本番0件） |
+| Webhook受信Worker | ⏸ 当面使わない。会員判定は Stripe を直接見る方針（0-1参照） |
+| 会員データベース（Cloudflare D1 `bcore-members`） | ⏸ 当面使わない（中身はテストモードの記録のみ） |
 | 講義プラットフォーム | ⬜ 未着手 |
 | 本番の会員 | 0件（2026-08-28 の1件は払い戻し済み）|
 
 公開URL: https://bcore-hp.haruharumocimoci.workers.dev
 - `/health` … 合言葉が届いているかを確認できる
-- `/stripe/webhook` … テストモードのみ登録が生きている。**本番モードは要再登録**（0-1参照）
+- `/stripe/webhook` … テストモードのみ登録が生きている。本番モードは登録しない（0-1参照）
 
 > シークレットは Cloudflare の「変数とシークレット」（ビルド側）に入れ、
 > デプロイコマンドの末尾で `wrangler secret put` して実行環境へコピーしている。
@@ -28,7 +28,7 @@
 
 ## 0. Stripeから届いた通知への対応
 
-### 0-1. この Worker には本番の通知が届いていない ❓ 方針を決める必要あり
+### 0-1. 会員判定は Stripe を直接見る ✅ 方針決定（残作業: example.com の削除）
 
 **本番モードの通知は、これまで一度もこの Worker に届いていない。**
 ただし Stripe の配信自体は失敗していない — 別の宛先 `https://bcoreform.com/api/stripe/webhook`
@@ -76,53 +76,61 @@ Stripeの失敗メールの時刻と突き合わせると、原因がはっき�
 > テストモードの通知だけはこの Worker に届いていた（10件）。
 > そのため `/health` やテストでは異常に見えなかった。
 
-#### 決めること：会員管理の本体はどちらか
+#### 方針（2026-09-11 決定）：Stripe を正解とする
 
-Stripe は同じイベントを複数の宛先に送れるので、両立自体は問題ない。
-ただし「誰が有効な会員か」の正解を持つ場所は1つに決めておかないと、
-講義プラットフォームの入室チェック（B章）がどちらを見ればよいか決まらない。
+**会員の状態は Stripe を直接見て判断する。** ローカルに会員データベースを
+持たない。「誰がどの商品を買っているか」は Stripe が既に正確に持っているので、
+それを写し取って二重管理する必要がない、という判断。
 
-- **bcoreform.com が本体なら** … この `platform/` の Worker と D1 `bcore-members` は
-  役目がない。畳むか、用途を決め直す。B章の設計も前提から変わる
-- **この Worker が本体なら** … 下の復旧手順で本番モードにも登録する
-  （bcoreform.com はそのままでよい。Stripeは両方に送れる）
+この方針だと、こうなる:
 
-#### 復旧手順（「この Worker が本体」と決めた場合のみ）
+| | |
+| --- | --- |
+| `platform/`（Worker + D1 `bcore-members`） | **当面は不要**。Webhookを受けて写しを作るのが役目だったため |
+| Webhookの再登録（workers.dev を本番モードへ） | **不要** |
+| `https://example.com/api/stripe/webhook` の削除 | **必要**（打ち間違いの残骸。9/16 までStripeが失敗メールを送り続ける） |
+| `https://bcoreform.com/api/stripe/webhook` | そのまま。触らない |
 
-1. **本番モード**で https://dashboard.stripe.com/webhooks を開く
-2. 「エンドポイントを追加」→ URL に
-   `https://bcore-hp.haruharumocimoci.workers.dev/stripe/webhook`
-   イベントは README の5つ（`checkout.session.completed` /
-   `customer.subscription.created` / `.updated` / `.deleted` / `customer.updated`）
-3. 表示された `whsec_...` を Cloudflare の `STRIPE_WEBHOOK_SECRET` に登録し、**再ビルド**
-   （このリポジトリはビルド側の「変数とシークレット」から実行環境へコピーする作りのため）
-4. `https://bcore-hp.haruharumocimoci.workers.dev/health` を開き
-   `"secrets":{"live":true}` になっていることを確認
-5. `https://example.com/api/stripe/webhook` のエンドポイントを削除（「…」→ 削除）
-6. テストモードで1件申し込んでみて、`is_test = 1` の記録が増えることを確認する
+#### 「誰がどの商品か」の調べ方
+
+**画面で見る場合** … https://dashboard.stripe.com/subscriptions
+ステータスや商品で絞り込める。日常はこれで足りる。
+
+**コマンドで一覧が欲しい場合** … 有効な契約を顧客ごと全部出す:
 
 ```sh
-npx wrangler d1 execute bcore-members --remote \
-  --command "SELECT MAX(received_at) FROM webhook_events WHERE is_test = 0;"
+curl -G https://api.stripe.com/v1/subscriptions \
+  -u "sk_live_xxxxx:" \
+  -d status=active \
+  -d limit=100 \
+  -d "expand[]=data.customer"
 ```
 
-#### 8/28 のイベントは再送信しないこと ⛔
+**メールアドレスから1人分を引く場合**:
 
-失われた 2026-08-28 の申し込み（`cus_V9YG3H3s81mqfU`）は、**すでに払い戻し済み**。
-したがって D1 に記録がないのは正しい状態であり、追いかける必要はない。
-
-むしろ `checkout.session.completed` と `customer.subscription.created` を
-再送信すると、**払い戻した相手が `status = 'active'` で登録されてしまう**。
-入室チェックはこの1行で判定するため、幽霊会員が講義に入れることになる。
-
-```sql
-SELECT 1 FROM subscriptions
-WHERE email = ? AND status IN ('active','trialing') AND is_test = 0;
+```sh
+curl -G https://api.stripe.com/v1/customers \
+  -u "sk_live_xxxxx:" \
+  -d email="shirabetai@example.com" \
+  -d "expand[]=data.subscriptions"
 ```
 
-> ⚠️ 払い戻し（refund）はサブスクリプション自体を止めない。
-> Stripeで契約が `canceled` になっているかは別途確認すること。
-> `active` のままだと次の請求日にまた課金される。
+`subscriptions.data[].status` が `active` / `trialing` なら有効な会員。
+`subscriptions.data[].items.data[0].price.id` がプラン（ONLINE / OFFLINE）。
+
+> 解約すると期間末日まで `active` のままなので、
+> HPに書いた「お支払い済みの期間の末日までご利用いただけます」と自動で一致する。
+> この性質は D1 を使っていたときと変わらない。
+
+#### この方針の限界（将来ぶつかったら考えること）
+
+- 講義プラットフォーム側で**自動的に入室制御**したくなったら、その都度 Stripe API を
+  叩くことになる（1回あたり0.2〜0.5秒）。人数が数百人規模までならこれで足りる
+- Stripe APIが落ちている間は判定できない。写しを持たない以上これは避けられない
+- 照会する場所に `sk_live_...` を置く必要がある。ブラウザ側には絶対に置かないこと
+
+これらが問題になった時点で、改めて写し（D1）を作ればよい。
+`platform/` のコードはそのとき再利用できる。
 
 ### 0-2. 受信Workerの修正 ✅ 対応済み
 
@@ -209,6 +217,9 @@ DELETE FROM webhook_events WHERE is_test = 1;
 - **動画の置き場所** … YouTube限定公開（無料）/ Cloudflare Stream（有料・転載されにくい）
 - **ライブ配信** … ZoomのURLを会員ページに載せる形なら追加費用ゼロ
 
+> ⚠️ 2026-09-11 の方針変更により、**この章の「D1を見て判定する」前提は無効**。
+> 判定は Stripe API を直接叩く形になる（0-1参照）。下の候補はその前提で読むこと。
+
 ### B-2. 繋ぎ方の候補
 1. **入室チェックAPI** … メールアドレスを投げると有効/無効が返る。
    プラットフォーム側にログイン機能がある場合はこれが最短。
@@ -216,11 +227,8 @@ DELETE FROM webhook_events WHERE is_test = 1;
    プラットフォーム側にログイン機能が無くてもよい。
 3. **自動招待・自動退出** … Discord / Slack などのAPIを叩く。
 
-判定に使うSQL:
-```sql
-SELECT 1 FROM subscriptions
-WHERE email = ? AND status IN ('active','trialing') AND is_test = 0;
-```
+判定の中身は 0-1 の `curl` と同じ。メールアドレスで顧客を引き、
+`subscriptions.data[].status` が `active` / `trialing` かを見る。
 
 解約すると期間末日まで `active` のままなので、HPの解約ルールと自動で一致する。
 
