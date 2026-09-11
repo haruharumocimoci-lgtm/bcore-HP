@@ -1,6 +1,6 @@
 # 次にやること（引き継ぎメモ）
 
-最終更新: 2026-09-10
+最終更新: 2026-09-11
 
 ## いまの状態
 
@@ -11,14 +11,14 @@
 | 解約ポータル（カスタマーポータル） | ✅ 設定済み・動作確認済み |
 | プラン価格ID（`plan` 欄への記録） | ✅ 設定済み（`/health` の `prices` で反映を確認できる） |
 | 解約ルール（いつでも解約可・期間末日まで利用可・返金なし） | ✅ 反映済み |
-| Webhook受信Worker | ✅ 公開・動作確認済み |
-| 会員データベース（Cloudflare D1 `bcore-members`） | ✅ 記録を確認 |
+| Webhook受信Worker | ⚠️ Worker自体は正常。ただし**本番モードの通知が一度も届いていない**（0-1参照） |
+| 会員データベース（Cloudflare D1 `bcore-members`） | ⚠️ テストモードの記録のみ（本番0件） |
 | 講義プラットフォーム | ⬜ 未着手 |
-| 本番の会員 | 1件（2026-08-28 に最初の申し込み。ONLINE ¥5,500） |
+| 本番の会員 | Stripe上は1件（2026-08-28・ONLINE ¥5,500）。**D1には未記録** |
 
 公開URL: https://bcore-hp.haruharumocimoci.workers.dev
 - `/health` … 合言葉が届いているかを確認できる
-- `/stripe/webhook` … Stripeに登録済み（本番・テスト両モード）
+- `/stripe/webhook` … テストモードのみ登録が生きている。**本番モードは要再登録**（0-1参照）
 
 > シークレットは Cloudflare の「変数とシークレット」（ビルド側）に入れ、
 > デプロイコマンドの末尾で `wrangler secret put` して実行環境へコピーしている。
@@ -28,58 +28,89 @@
 
 ## 0. Stripeから届いた通知への対応
 
-### 0-1. `https://example.com/api/stripe/webhook` を削除する ⚠️ 要対応（期限 2026-09-16）
+### 0-1. 本番モードのWebhookが機能していない ⛔ 最優先
 
-Stripeから「Webhook の配信に関する問題」というメールが繰り返し届いている
-（2026-08-31 / 2026-09-10）。宛先はこのURL:
+**本番モードの通知は、これまで一度もWorkerに届いていない。**
 
+D1 を直接確認した結果（2026-09-11）:
+
+| 確認したこと | 結果 |
+| --- | --- |
+| `webhook_events` の中身 | 10件すべて `is_test = 1`。本番モードは**0件** |
+| 最後に受信した通知 | 2026-08-28 01:28 UTC（テストモード） |
+| `subscriptions` の本番会員 | **0件**（`customers` も本番は0件） |
+
+```sh
+# 再確認するとき
+npx wrangler d1 execute bcore-members --remote \
+  --command "SELECT is_test, COUNT(*) FROM webhook_events GROUP BY is_test;"
 ```
-https://example.com/api/stripe/webhook
-```
 
-`example.com` は**説明用のダミーのドメイン**で、B-CORE とは無関係。
-このリポジトリのどこにも出てこない。Stripeダッシュボードに登録されたまま
-残っている設定ミスなので、**コードでは直せない**。
+#### 何が起きたか
 
-対応（Stripeダッシュボードでの操作）:
+Stripeの失敗メールの時刻と突き合わせると、原因がはっきりする。
 
-1. https://dashboard.stripe.com/webhooks を開く（本番モード）
-2. `https://example.com/api/stripe/webhook` の行を開く
-3. 「…」→「エンドポイントを削除」
+| 日時 (UTC) | 出来事 |
+| --- | --- |
+| 08-21 10:27 〜 08-24 | 本番の送信先が workers.dev。エラー14件 + HTTP 500 が2件（合言葉の登録前） |
+| （この間に送信先が差し替わった） | 本番の送信先が `https://example.com/api/stripe/webhook` になる |
+| **08-28 02:05:58** | **最初の本番申し込み ¥5,500（ONLINE / `cus_V9YG3H3s81mqfU`）** |
+| **08-28 02:10:27** | example.com への配信失敗が始まる（= この時点の送信先は example.com） |
+| 08-31 / 09-10 | 失敗メール。9/7以降だけで17回失敗。9/16 にStripeが送信を停止する |
 
-放っておいても支払いや入金には影響しない（2026-09-16 にStripeが送信を止める）が、
-失敗メールが届き続けるので消しておくこと。
+つまり **最初の本番申し込みの通知は、ダミードメインに送られて失われた。**
+支払いと入金はStripe側で正常に完了しているので、お金の問題はない。
+壊れているのは「誰が有効な会員か」の記録だけ。
 
-> 正しいエンドポイントは `https://bcore-hp.haruharumocimoci.workers.dev/stripe/webhook` の1つだけ。
-> 本番モードとテストモードにそれぞれ1件ずつ登録されている状態が正解。
+> テストモードの通知は正常に届いていた（10件）。
+> そのため `/health` やテストでは異常に見えず、見逃されていた。
 
-### 0-2. workers.dev 側の配信エラー ✅ 解消済み
+#### 復旧手順（Stripeダッシュボードでの操作。コードでは直せない）
 
-2026-08-24 に `https://bcore-hp.haruharumocimoci.workers.dev/stripe/webhook` でも
-失敗メールが届いていた（8/21〜8/24、その他エラー14件 + HTTP 500 が2件）。
-合言葉（`STRIPE_WEBHOOK_SECRET`）の登録前だった時期のもので、
-その後この宛先の失敗メールは届いていない。
-
-再発時の切り分けのため、次の2点を修正済み:
-
-- D1（データベース）に触れなかったときに、Workerが素の例外で落ちるのではなく
-  理由をログに残して500を返すようにした（Stripeが自動で再送してくれる）
-- `checkout.session.completed` で受け取ったメールアドレスを小文字に揃えるようにした
-  （`subscriptions.email` は入室チェックの照合先。大文字が混ざると会員判定が外れる）
-
-### 0-3. 最初の本番会員がD1に入っているか確認する ⚠️ 要確認
-
-2026-08-28 に本番モードで最初の申し込みが入った（ONLINE ¥5,500 / `cus_V9YG3H3s81mqfU`）。
-Webhookが正常に受け取れていれば、次のSQLで1件返るはず。
+1. **本番モード**で https://dashboard.stripe.com/webhooks を開く
+2. 「エンドポイントを追加」→ URL に
+   `https://bcore-hp.haruharumocimoci.workers.dev/stripe/webhook`
+   イベントは README の5つ（`checkout.session.completed` /
+   `customer.subscription.created` / `.updated` / `.deleted` / `customer.updated`）
+3. 表示された `whsec_...` を Cloudflare の `STRIPE_WEBHOOK_SECRET` に登録し、**再ビルド**
+   （このリポジトリはビルド側の「変数とシークレット」から実行環境へコピーする作りのため）
+4. `https://bcore-hp.haruharumocimoci.workers.dev/health` を開き
+   `"secrets":{"live":true}` になっていることを確認
+5. `https://example.com/api/stripe/webhook` のエンドポイントを削除（「…」→ 削除）
+6. 「開発者」→「イベント」から **2026-08-28 の本番イベント**を選び、
+   新しいエンドポイントへ再送信する
+   （`checkout.session.completed` と `customer.subscription.created` の2つ）
+   ※ 再送信できるのは発生から30日以内。**2026-09-27 が期限**
+7. D1 に入ったことを確認する
 
 ```sh
 npx wrangler d1 execute bcore-members --remote \
   --command "SELECT email, plan, status, current_period_end FROM subscriptions WHERE is_test = 0;"
 ```
 
-0件だった場合は、Stripeダッシュボードの「開発者」→「Webhook」→
-該当エンドポイントの「イベントの配信」から 2026-08-28 のイベントを再送信する
-（`checkout.session.completed` と `customer.subscription.created` の2つ）。
+> 手順6を逃した場合でも、次回の請求（`customer.subscription.updated`）が届けば
+> 会員として記録される。ただしそれまでは入室チェックを通らない。
+
+### 0-2. 受信Workerの修正 ✅ 対応済み
+
+再発時に原因を追えるよう、2点修正した（`src/index.js`）。
+
+- D1に触れなかったときに素の例外で落ちる代わりに、理由をログに残して500を返す
+  （Stripeが自動で再送する。8/24 の HTTP 500 はこの経路の可能性が高い）
+- `checkout.session.completed` のメールアドレスを小文字に正規化する。
+  `subscriptions.email` は入室チェックの照合先で、`schema.sql` が求める
+  「必ず小文字で保存する」に `customers` 側だけが従っていた
+
+> ⚠️ この修正は作業ブランチにあるだけで、**まだ本番のWorkerには入っていない**。
+> デプロイ済みのコードは修正前の状態（Cloudflareで確認済み）。
+
+### 0-3. 再発を防ぐ
+
+テストモードだけが通っていても気づけなかったのが今回の反省点。
+本番の通知が生きているかは、次のどちらかで見るとよい。
+
+- Stripeダッシュボードの「Webhook」→ 本番エンドポイントの成功率
+- D1: `SELECT MAX(received_at) FROM webhook_events WHERE is_test = 0;`
 
 ---
 
@@ -95,7 +126,7 @@ npx wrangler d1 execute bcore-members --remote \
 
 ただしここで扱ったデータは全件テストモード（`is_test = 1`）で、A-4 でどのみち消す。
 
-> 2026-08-28 に本番モードの申し込みが1件入っている。こちらの記録の有無は 0-3 で確認すること。
+> 2026-08-28 に本番モードの申し込みが1件入っているが、D1には届いていない。0-1 を参照。
 
 ### A-2. プランの価格IDを設定する ✅ 完了
 
