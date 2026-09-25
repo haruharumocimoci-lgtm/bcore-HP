@@ -1121,7 +1121,7 @@ ul { list-style: none; }
     <div class="about__grid">
       <article class="about__card">
         <h3>朝から動く</h3>
-        <p>朝から動く人は、誠実性や自己管理能力が高い傾向にあります。だからこそ、志の高い仲間が集まる環境とコミュニティが自然に生まれます。平日5:45、仲間と一緒に一日をスタートしましょう。</p>
+        <p>朝から動く人は、誠実性や自己管理能力が高い傾向にあります。だからこそ、志の高い仲間が集まる環境とコミュニティが自然に生まれます。平日午前6時、仲間と一緒に一日をスタートしましょう。</p>
       </article>
       <article class="about__card">
         <h3>対話型の指導</h3>
@@ -1158,21 +1158,31 @@ ul { list-style: none; }
       <article class="service__col">
         <h3 class="service__head">ONLINE<span>オンライン</span></h3>
         <ul>
-          <li>LINEで技術指導</li>
-          <li>平日5:45〜 朝活動（タスク管理・思考トレーニング会）</li>
-          <li>講義動画をいつでも視聴可能</li>
-          <li>自社ブランド商品を割引価格で購入</li>
-          <li>不定期オフライン会</li>
-          <li>月次面談（希望者）— 目標・反省をタスク化し、モチベに頼らない仕組みづくり</li>
-          <li>親面談（希望者）</li>
+          <li>LINEで技術指導 — 上限なしで質問等、送り放題</li>
+          <li>平日午前6時〜 朝活動 — その日の目標設定、タスク整理（自由に参加できます）</li>
+          <li>月次面談 — 月の反省、翌月の目標をタスク化し、モチベーションに頼らない仕組みを習慣にします（選手・保護者も自由に参加できます）</li>
         </ul>
       </article>
       <article class="service__col service__col--accent">
-        <h3 class="service__head">OFFLINE<span>オフライン</span></h3>
+        <h3 class="service__head">DELIVERY<span>デリバリー野球塾</span></h3>
         <ul>
-          <li>オンラインの全サービスを含む</li>
-          <li>週1回の野球塾（対面指導）</li>
-          <li>練習後のプロテイン支給</li>
+          <li>ご希望の時間・場所・公園へ出張（日時・場所は要相談）</li>
+          <li>1回のレッスンは最大3人まで — ご要望に最大限お応えします</li>
+        </ul>
+      </article>
+      <article class="service__col service__col--accent">
+        <h3 class="service__head">DELIVERY PLUS<span>デリバリーお得プラン</span></h3>
+        <ul>
+          <li>デリバリー野球塾が1時間ごとに500円割引</li>
+          <li>1日に何回でも使えます</li>
+        </ul>
+      </article>
+      <article class="service__col">
+        <h3 class="service__head">ONLINE α<span>オンラインα</span></h3>
+        <ul>
+          <li>オンライン ＋ デリバリーお得プラン</li>
+          <li>不定期のイベントに無料参加（野球教室など）</li>
+          <li>自社ブランド商品を割引価格で購入可能（現在制作中です）</li>
         </ul>
       </article>
     </div>
@@ -1193,14 +1203,27 @@ ul { list-style: none; }
     <div class="price__grid">
       <article class="price__card">
         <h3>ONLINE</h3>
-        <p class="price__amount">¥5,500<span>/月（税込）</span></p>
+        <p class="price__amount">¥3,300<span>/月（税込）</span></p>
+        <p class="price__note">LINE技術指導・朝活動・月次面談</p>
         <a href="#join" class="btn btn--line" data-nav data-stripe="online">申し込む</a>
       </article>
       <article class="price__card price__card--main">
-        <h3>OFFLINE</h3>
-        <p class="price__amount">¥9,900<span>/月（税込）</span></p>
-        <p class="price__note">オンラインの全サービス込み</p>
-        <a href="#join" class="btn btn--fill" data-nav data-stripe="offline">申し込む</a>
+        <h3>ONLINE α</h3>
+        <p class="price__amount">¥5,500<span>/月（税込）</span></p>
+        <p class="price__note">オンライン＋デリバリーお得プラン＋イベント無料参加など</p>
+        <a href="#join" class="btn btn--fill" data-nav data-stripe="alpha">申し込む</a>
+      </article>
+      <article class="price__card">
+        <h3>DELIVERY PLUS</h3>
+        <p class="price__amount">¥2,500<span>/月（税込）</span></p>
+        <p class="price__note">デリバリー野球塾が1時間ごとに500円割引</p>
+        <a href="#join" class="btn btn--line" data-nav data-stripe="delivery_plus">申し込む</a>
+      </article>
+      <article class="price__card">
+        <h3>DELIVERY</h3>
+        <p class="price__amount">¥4,500<span>/1時間（税込）</span></p>
+        <p class="price__note">デリバリー野球塾 — お支払いはレッスン当日に現金で</p>
+        <a href="#contact" class="btn btn--line" data-nav>お申し込み</a>
       </article>
     </div>
   </section>
@@ -1305,17 +1328,28 @@ ul { list-style: none; }
     <div class="join__plans">
       <div class="join__plan">
         <h3>ONLINE</h3>
-        <p>¥5,500<span>/月（税込）</span></p>
+        <p>¥3,300<span>/月（税込）</span></p>
         <a href="#" class="btn btn--invert" data-stripe="online">このプランで申し込む</a>
       </div>
       <div class="join__plan">
-        <h3>OFFLINE</h3>
-        <p>¥9,900<span>/月（税込）</span></p>
-        <a href="#" class="btn btn--invert" data-stripe="offline">このプランで申し込む</a>
+        <h3>ONLINE α</h3>
+        <p>¥5,500<span>/月（税込）</span></p>
+        <a href="#" class="btn btn--invert" data-stripe="alpha">このプランで申し込む</a>
+      </div>
+      <div class="join__plan">
+        <h3>DELIVERY PLUS</h3>
+        <p>¥2,500<span>/月（税込）</span></p>
+        <a href="#" class="btn btn--invert" data-stripe="delivery_plus">このプランで申し込む</a>
+      </div>
+      <div class="join__plan">
+        <h3>DELIVERY</h3>
+        <p>¥4,500<span>/1時間（税込）</span></p>
+        <a href="#contact" class="btn btn--invert" data-nav>お申し込み（現金払い）</a>
       </div>
     </div>
 
     <p class="join__note" id="joinNote">申し込みフォームは準備中です。お急ぎの方はInstagramのDMからご連絡ください。</p>
+    <p class="join__note">デリバリー野球塾はレッスン当日の現金払いです。<a href="#contact" class="legal__link" data-nav>お問い合わせページ</a>からお申し込みください。</p>
     <p class="join__note">お申し込み前に <a href="#legal" class="legal__link" data-nav>特定商取引法に基づく表記</a> をご確認ください。</p>
     <p class="join__note">ご契約中の方の <a href="#cancel" class="legal__link" data-nav>解約のお手続きはこちら</a>。</p>
   </section>
@@ -1329,7 +1363,7 @@ ul { list-style: none; }
 
   <section class="section section--flush">
     <div class="legal">
-      <p class="legal__lead">月額プラン（ONLINE / OFFLINE）の解約は、下のボタンからご自身でいつでもお手続きいただけます。締め日や事前のご連絡はありません。お支払い済みの期間の末日まではそのままご利用いただけます。</p>
+      <p class="legal__lead">月額プラン（ONLINE / ONLINE α / デリバリーお得プラン）の解約は、下のボタンからご自身でいつでもお手続きいただけます。締め日や事前のご連絡はありません。お支払い済みの期間の末日まではそのままご利用いただけます。</p>
 
       <p class="cancel__action">
         <a href="#" class="btn btn--fill" data-stripe-portal>解約・お支払い情報の確認へ</a>
@@ -1344,7 +1378,7 @@ ul { list-style: none; }
         <div><dt>解約後のご利用</dt><dd>お手続き後すぐに使えなくなることはありません。お支払い済みの期間の末日まではそのままサービスをご利用いただけます。<br>なお、お支払い済みの月額料金の返金・日割りでの返金はいたしかねます。</dd></div>
         <div><dt>うまくいかないとき</dt><dd>メールアドレスが分からない、ログインメールが届かないなどの場合は、<a class="legal__link" href="mailto:info@b-core.space">info@b-core.space</a> または <a class="legal__link" href="https://www.instagram.com/yhyhyear/" target="_blank" rel="noopener">Instagram DM（@yhyhyear）</a> までご連絡ください。こちらで解約のお手続きをいたします。</dd></div>
       </dl>
-      <p class="legal__note">※ 物販商品（都度購入）には解約のお手続きはありません。</p>
+      <p class="legal__note">※ 物販商品（都度購入）およびデリバリー野球塾（都度・現金払い）には解約のお手続きはありません。</p>
     </div>
   </section>
 
@@ -1368,11 +1402,11 @@ ul { list-style: none; }
         <div><dt>電話番号</dt><dd>ご請求をいただいた場合に、遅滞なく開示いたします。お問い合わせは下記メールアドレスまたは<a class="legal__link" href="#contact" data-nav>お問い合わせページ</a>よりお願いいたします。</dd></div>
         <div><dt>メールアドレス</dt><dd><a class="legal__link" href="mailto:info@b-core.space">info@b-core.space</a></dd></div>
         <div><dt>サービス名</dt><dd>B-CORE（野球塾）</dd></div>
-        <div><dt>販売価格</dt><dd>ONLINEプラン: 月額 5,500円（税込）<br>OFFLINEプラン: 月額 9,900円（税込）<br>物販商品: 各商品に表示された価格（税込）</dd></div>
-        <div><dt>商品代金以外の<br>必要料金</dt><dd>インターネット接続料金・通信料金（お客様のご負担）<br>オフライン開催地までの交通費<br>物販商品の送料（該当する場合は購入画面に表示）</dd></div>
-        <div><dt>お支払い方法</dt><dd>クレジットカード決済（Stripe）</dd></div>
-        <div><dt>お支払い時期</dt><dd>月額プラン: 初回はお申し込み時に決済。以降は毎月、初回決済日と同じ日に自動で決済されます。<br>物販商品: ご購入時に決済。</dd></div>
-        <div><dt>サービスの提供時期</dt><dd>月額プラン: 決済完了後、順次ご案内（グループへのご招待等）いたします。オフライン指導は決済完了後の最初の開催日からご参加いただけます。<br>物販商品: 決済完了後、7営業日以内に発送または受け渡しいたします。</dd></div>
+        <div><dt>販売価格</dt><dd>ONLINEプラン: 月額 3,300円（税込）<br>ONLINE αプラン: 月額 5,500円（税込）<br>デリバリーお得プラン: 月額 2,500円（税込）<br>デリバリー野球塾: 1時間 4,500円（税込）（デリバリーお得プラン・ONLINE αご加入中は1時間ごとに500円割引）<br>物販商品: 各商品に表示された価格（税込）</dd></div>
+        <div><dt>商品代金以外の<br>必要料金</dt><dd>インターネット接続料金・通信料金（お客様のご負担）<br>デリバリー野球塾の出張先によっては交通費をご相談させていただく場合があります<br>物販商品の送料（該当する場合は購入画面に表示）</dd></div>
+        <div><dt>お支払い方法</dt><dd>月額プラン・物販商品: クレジットカード決済（Stripe）<br>デリバリー野球塾: レッスン当日に現金でお支払い</dd></div>
+        <div><dt>お支払い時期</dt><dd>月額プラン: 初回はお申し込み時に決済。以降は毎月、初回決済日と同じ日に自動で決済されます。<br>デリバリー野球塾: レッスン当日に現金でお支払い。<br>物販商品: ご購入時に決済。</dd></div>
+        <div><dt>サービスの提供時期</dt><dd>月額プラン: 決済完了後、順次ご案内（グループへのご招待等）いたします。デリバリー野球塾は、お申し込み後に日時・場所を調整のうえ実施いたします。<br>物販商品: 決済完了後、7営業日以内に発送または受け渡しいたします。</dd></div>
         <div><dt>解約について</dt><dd><a class="legal__link" href="#cancel" data-nav>解約のお手続きページ</a>から、お客様ご自身でいつでも解約いただけます（メールまたはInstagramのDMでのご連絡でも承ります）。お手続きをされた時点で次回以降の自動更新が停止し、追加のご請求は発生しません。お支払い済みの期間の末日まではサービスをご利用いただけます。</dd></div>
         <div><dt>返品・返金について</dt><dd>サービスの性質上、決済済みの月額料金の返金は承っておりません。期間の途中で解約された場合も、日割りでの返金はいたしかねます（お支払い済みの期間の末日までサービスをご利用いただけます）。<br>物販商品は、商品に破損・不良があった場合に限り、到着後7日以内にご連絡いただければ交換または返金いたします。</dd></div>
         <div><dt>動作環境</dt><dd>インターネットに接続できる端末、およびLINEアプリのご利用が可能な環境</dd></div>
@@ -1474,6 +1508,7 @@ ul { list-style: none; }
       <dl class="legal__dl">
         <div><dt>メール</dt><dd><a class="legal__link" href="mailto:info@b-core.space">info@b-core.space</a></dd></div>
         <div><dt>Instagram DM</dt><dd><a class="legal__link" href="https://www.instagram.com/yhyhyear/" target="_blank" rel="noopener">@yhyhyear</a><br><span style="color:#888">DMでのご連絡が最もスムーズです。</span></dd></div>
+        <div id="delivery-apply"><dt>デリバリー野球塾の<br>お申し込み</dt><dd>上記のメールまたはInstagram DMで、以下をお知らせください。<br>・ご希望の日時（第2希望まであるとスムーズです）<br>・ご希望の場所（公園など）<br>・参加人数（1回のレッスンは最大3人まで）<br>・選手の学年とご要望<br>料金は1時間 4,500円（税込）。お支払いはレッスン当日に現金でお願いいたします。</dd></div>
       </dl>
     </div>
   </section>
@@ -1518,8 +1553,13 @@ const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').match
    ※ この設定はページ最上部（ページ遷移の処理より前）に置いてください。
    ========================================================= */
 const STRIPE_LINKS = {
-  online:  'https://buy.stripe.com/fZufZgbia8HSc358Bq5Vu00',   // ONLINE  ¥5,500/月（サブスクリプション）
-  offline: 'https://buy.stripe.com/28EaEWbia6zKaZ16ti5Vu01',   // OFFLINE ¥9,900/月（サブスクリプション）
+  // デリバリー野球塾（¥4,500/1時間）は当日現金払いのため、Stripeのリンクは不要（お問い合わせページへ誘導）。
+  // TODO: 新料金の支払いリンクをStripeで発行して貼る
+  //   旧ONLINE ¥5,500  https://buy.stripe.com/fZufZgbia8HSc358Bq5Vu00
+  //   旧OFFLINE ¥9,900 https://buy.stripe.com/28EaEWbia6zKaZ16ti5Vu01
+  online:        '',   // ONLINE         ¥3,300/月（サブスクリプション）
+  alpha:         '',   // ONLINE α       ¥5,500/月（サブスクリプション）
+  delivery_plus: '',   // デリバリーお得プラン ¥2,500/月（サブスクリプション）
   // スパサブ ¥300（都度購入）はサイズごとに別々の支払いリンクを作ります。
   // Stripe側でリンクごとに「支払い件数を制限する」を185にしておくと、そのサイズが売り切れた時点で
   // Stripeが自動でリンクを無効化します（下の「スパサブのサイズ」も参照）。
@@ -1530,8 +1570,9 @@ const STRIPE_LINKS = {
 
 // テストモードで発行したリンク（?test=1 を付けて開いたときだけ使われる）
 const STRIPE_TEST_LINKS = {
-  online:  'https://buy.stripe.com/test_cNidRb3Br9uw1lZ7KIbQY00',   // テスト用 ONLINE
-  offline: 'https://buy.stripe.com/test_5kQ14p3Br2240hVe96bQY01',   // テスト用 OFFLINE
+  online:        '',   // テスト用 ONLINE ¥3,300
+  alpha:         '',   // テスト用 ONLINE α ¥5,500
+  delivery_plus: '',   // テスト用 デリバリーお得プラン ¥2,500
   spasub_s: 'https://buy.stripe.com/test_8x2eVf9ZP0Y07KnghebQY02',  // テスト用 スパサブ S
   spasub_m: '',                                                     // テスト用 スパサブ M
   spasub_l: ''                                                      // テスト用 スパサブ L
@@ -1540,19 +1581,20 @@ const STRIPE_TEST_LINKS = {
 const STRIPE_PENDING_MSG = '申し込みフォームは準備中です。お手数ですがInstagramのDMからご連絡ください。';
 
 /* =========================================================
-   プランごとの受付状態（ONLINE / OFFLINE）
+   プランごとの受付状態（ONLINE / ONLINE α / デリバリーお得プラン）
    ---------------------------------------------------------
    false にしたプランは、PRICEページ・JOINページの申し込みボタンが「受付準備中」になり押せなくなります
    （Stripeの支払いリンクは貼ったままでOK。決済ページには一切飛びません）。
    受付を始めるときは true に変えて push するだけです。
    ========================================================= */
 const PLAN_ON_SALE = {
-  online:  true,
-  offline: false    // OFFLINEは受付開始まで false のまま
+  online:        true,
+  alpha:         true,
+  delivery_plus: true
 };
 
 const PLAN_PENDING_LABEL = '受付準備中';
-const PLAN_PENDING_NOTE  = 'OFFLINEプランの受付は準備中です。開始まで今しばらくお待ちください。';
+const PLAN_PENDING_NOTE  = 'このプランの受付は準備中です。開始まで今しばらくお待ちください。';
 
 /* =========================================================
    スパサブのサイズ（STOREページ）
@@ -1648,7 +1690,7 @@ const stripeLinks = stripeTestMode ? STRIPE_TEST_LINKS : STRIPE_LINKS;
   });
 
   const joinNote = document.getElementById('joinNote');
-  if (joinNote && (stripeLinks.online || stripeLinks.offline)) {
+  if (joinNote && (stripeLinks.online || stripeLinks.alpha || stripeLinks.delivery_plus)) {
     joinNote.textContent = 'お支払いはStripeの安全な決済ページで行われます。カード情報が当サイトに保存されることはありません。';
   }
 
