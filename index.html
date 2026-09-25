@@ -1554,12 +1554,9 @@ const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').match
    ========================================================= */
 const STRIPE_LINKS = {
   // デリバリー野球塾（¥4,500/1時間）は当日現金払いのため、Stripeのリンクは不要（お問い合わせページへ誘導）。
-  // TODO: 新料金の支払いリンクをStripeで発行して貼る
-  //   旧ONLINE ¥5,500  https://buy.stripe.com/fZufZgbia8HSc358Bq5Vu00
-  //   旧OFFLINE ¥9,900 https://buy.stripe.com/28EaEWbia6zKaZ16ti5Vu01
-  online:        '',   // ONLINE         ¥3,300/月（サブスクリプション）
-  alpha:         '',   // ONLINE α       ¥5,500/月（サブスクリプション）
-  delivery_plus: '',   // デリバリーお得プラン ¥2,500/月（サブスクリプション）
+  online:        'https://buy.stripe.com/9B64gy4TMf6ggjl3h65Vu07',   // ONLINE ¥3,300/月（サブスクリプション）
+  alpha:         'https://buy.stripe.com/fZufZgbia8HSc358Bq5Vu00',   // ONLINE α ¥5,500/月（旧ONLINEのリンクを流用）
+  delivery_plus: 'https://buy.stripe.com/bJedR8cmeaQ0aZ18Bq5Vu08',   // デリバリーお得プラン ¥2,500/月（サブスクリプション）
   // スパサブ ¥300（都度購入）はサイズごとに別々の支払いリンクを作ります。
   // Stripe側でリンクごとに「支払い件数を制限する」を185にしておくと、そのサイズが売り切れた時点で
   // Stripeが自動でリンクを無効化します（下の「スパサブのサイズ」も参照）。
